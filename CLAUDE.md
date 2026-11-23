@@ -9,11 +9,13 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - PDFs: jsPDF + jspdf-autotable, loaded lazily from `src/lib/pdf.ts`.
 
 ## Where things are
-- `src/App.tsx` sign-in gate, tabs (hash routes `#month #staff #payroll #estimate #team`), month picker
+- `src/App.tsx` sign-in gate, tabs (hash routes `#home #month #staff #payroll #estimate #company #team` (`#home` = director dashboard, the default)), month picker
 - `src/data/DataContext.tsx` loads every table, subscribes to realtime, `upsert`/`remove`/`toast`
 - `src/lib/calc.ts` business rules: payroll lines and totals, bill status, document expiry alerts, overhead estimate
 - `src/lib/types.ts` row types (snake_case, same as the database), categories, payment methods
+- `src/lib/dashboard.ts` director dashboard: alerts, next-30-days list, 12-month trend, renewals (staff and company documents warn at 60 days, urgent at 30)
 - `src/views/*` one file per tab; `src/components/ui.tsx` shared Modal, Tile, Pill, Section
+- `company_docs` and `tasks` tables are optional in the app: if the SQL hasn't been run, those sections show a setup note instead of failing
 - `supabase/schema.sql` tables, RLS, realtime publication (idempotent, safe to re-run); `supabase/seed.sql` starting data
 - `src/index.css` "spatial" glass theme, light and dark, mobile first
 

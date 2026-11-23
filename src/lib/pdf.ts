@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import { autoTable, type UserOptions } from 'jspdf-autotable'
 import { fmt, fmt0, monthName, niceDate, todayStr } from './format'
 import { lineTotal, payTotals, type Estimate, type MonthSummary } from './calc'
+import type { Dashboard } from './dashboard'
 import { CATEGORIES, type PayLine, type Staff } from './types'
 
 type RGB = [number, number, number]
@@ -123,4 +124,51 @@ export async function estimatePdf(e: Estimate) {
     table(p, { head: [['Name', 'Document', 'Expires']], body: e.renew.map(r => [r.name, r.doc, niceDate(r.date)]), headStyles: { ...head, fillColor: ORANGE } })
   }
   finish(p, 'Prepared by', 'Approved by (Director)', `Overhead estimate ${monthName(e.k)}`, `Maavel-overhead-estimate-${e.k}.pdf`)
+}
+
+export async function directorPdf(x: Dashboard) {
+  const p = await start(`Director's summary: ${monthName(x.k)}`,
+    `${x.active.length} active staff  ·  Spent this month MVR ${fmt(x.cur.total)}  ·  ${monthName(x.nextK)} estimate MVR ${fmt(x.next.total)}`)
+  table(p, {
+    head: [['Key figures', 'MVR']],
+    body: [
+      [`Paid so far in ${monthName(x.k)}`, fmt(x.cur.total)],
+      [`Still to pay in ${monthName(x.k)}`, fmt(x.cur.dueTotal)],
+      ['Average monthly spend (last 3 full months)', fmt(x.avg3)],
+      [`${monthName(x.nextK)} overhead estimate`, fmt(x.next.total)],
+      [`Monthly staff cost (${x.active.length} active, ${x.expats.length} expat)`, fmt(x.staffMonthly)],
+      [`Spent in ${x.year} so far`, fmt(x.ytdTotal)],
+    ],
+    columnStyles: { 1: { halign: 'right' } },
+  })
+  if (x.alerts.length) {
+    section(p, 'Needs attention')
+    table(p, { head: [['', 'Item', 'Details']], body: x.alerts.map(a => [a.level === 'bad' ? 'Urgent' : 'Soon', a.title, a.detail]), headStyles: { ...head, fillColor: ORANGE }, columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 62 } } })
+  }
+  section(p, 'Monthly spend, last 12 months')
+  table(p, {
+    head: [['Month', 'Staff', 'Rent & bills', 'Other', 'Total']],
+    body: x.trend.map(t => [monthName(t.k), fmt0(t.staff), fmt0(t.bills), fmt0(t.other), fmt0(t.total)]),
+    styles: { ...base, fontSize: 8.8, cellPadding: 1.8 }, theme: 'striped', alternateRowStyles: { fillColor: [246, 247, 250] },
+    columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right', fontStyle: 'bold' } },
+  })
+  if (x.ytdRows.length) {
+    section(p, `${x.year} by category`)
+    table(p, { head: [['Category', 'MVR', 'Share']], body: x.ytdRows.map(([c, v]) => [c, fmt(v), `${Math.round((v / (x.ytdTotal || 1)) * 100)}%`]), foot: [['Total', fmt(x.ytdTotal), '']], footStyles: footSoft, columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' } } })
+  }
+  section(p, 'Staff documents to renew (next 90 days)')
+  table(p, { head: [['Name', 'Document', 'Expires', 'Status']], body: x.staffDocs.length ? x.staffDocs.map(r => [r.staff.name, r.doc, niceDate(r.date), r.text]) : [['None', '', '', '']], headStyles: { ...head, fillColor: ORANGE } })
+  if (x.missingDates.length) {
+    section(p, 'Expats with missing passport, work permit or visa dates')
+    table(p, { head: [['Name', 'Missing']], body: x.missingDates.map(s => [s.name, [!s.passport_exp && 'Passport', !s.wp_exp && 'Work permit', !s.visa_exp && 'Visa'].filter(Boolean).join(', ')]) })
+  }
+  if (x.companyDocs.length) {
+    section(p, 'Company licences and documents')
+    table(p, { head: [['Document', 'Number', 'Expires', 'Status', 'Fee']], body: x.companyDocs.map(c => [c.doc.name, c.doc.number, c.doc.expiry_date ? niceDate(c.doc.expiry_date) : 'Does not expire', c.doc.expiry_date ? (c.level === 'ok' ? 'OK' : c.text) : '', c.doc.renewal_cost ? fmt0(c.doc.renewal_cost) : '']), columnStyles: { 4: { halign: 'right' } } })
+  }
+  if (x.open.length) {
+    section(p, 'Open to-dos')
+    table(p, { head: [['To-do', 'For', 'Due', 'Priority']], body: x.open.map(t => [t.title, t.owner, t.due_date ? niceDate(t.due_date) : '', t.priority]) })
+  }
+  finish(p, 'Prepared by', 'Managing Director', `Director's summary ${monthName(x.k)}`, `Maavel-director-summary-${x.k}.pdf`)
 }

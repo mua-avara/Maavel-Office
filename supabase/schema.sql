@@ -143,3 +143,48 @@ begin
     end;
   end loop;
 end $$;
+
+-- ---------- Director dashboard: company documents and to-dos (added Nov 2026) ----------
+-- Self-contained and safe to re-run: paste just this section into the SQL Editor if the rest is already set up.
+create table if not exists public.company_docs (
+  id text primary key default gen_random_uuid()::text,
+  name text not null,                       -- e.g. Business registration, SME registration, Vehicle registration
+  category text not null default 'Other',
+  number text default '',
+  issuer text default '',                   -- e.g. Ministry of Economic Development, MIRA, Transport Authority
+  issue_date date,
+  expiry_date date,                         -- null = does not expire
+  renewal_cost numeric,
+  notes text default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.tasks (
+  id text primary key default gen_random_uuid()::text,
+  title text not null,
+  due_date date,
+  owner text default '',                    -- who should do it (free text)
+  priority text not null default 'Normal' check (priority in ('High','Normal','Low')),
+  done boolean not null default false,
+  done_date date,
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+
+alter table public.company_docs enable row level security;
+alter table public.tasks        enable row level security;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['company_docs','tasks'] loop
+    execute format('drop policy if exists "%1$s read" on public.%1$I', t);
+    execute format('create policy "%1$s read" on public.%1$I for select to authenticated using (public.my_role() is not null)', t);
+    execute format('drop policy if exists "%1$s write" on public.%1$I', t);
+    execute format('create policy "%1$s write" on public.%1$I for all to authenticated using (public.my_role() in (''admin'',''editor'')) with check (public.my_role() in (''admin'',''editor''))', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

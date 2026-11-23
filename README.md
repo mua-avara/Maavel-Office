@@ -2,10 +2,12 @@
 
 Staff, payroll, bills and overhead estimates for **Maavel Maldives Pvt Ltd**, with PDF reports.
 
+- **Dashboard**: the director's view: what needs attention, the next 30 days, a to-do list, 12-month overhead trend, staff visa and document renewals, company licences, and a director's summary PDF
 - **Month**: rent and bills (paid / due soon / overdue), other expenses, monthly expense PDF
 - **Staff**: pay, allowances, passport, work permit, visa, medical and insurance dates, with renewal alerts
 - **Payroll**: built from the staff list each month, overtime and deductions, salary sheet PDF
 - **Estimate**: next month's overheads plus any extra items, as a PDF to share with the team
+- **Company**: business registration, permits, GST, leases, insurance, vehicles and quota approvals with expiry dates and renewal fees
 - **Team**: who can sign in, and whether they are an admin, editor or viewer
 
 Built with React, TypeScript and Vite. Data and sign-in are on [Supabase](https://supabase.com) (free plan). Hosting is on [Cloudflare Pages](https://pages.cloudflare.com) (free). Everyone who signs in sees changes live.

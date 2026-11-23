@@ -87,6 +87,37 @@ export interface EstimateItem {
   amount: number
 }
 
+export interface CompanyDoc {
+  id: string
+  name: string
+  category: string
+  number: string
+  issuer: string
+  issue_date: string | null
+  expiry_date: string | null
+  renewal_cost: number | null
+  notes: string
+}
+
+export type Priority = 'High' | 'Normal' | 'Low'
+
+export interface Task {
+  id: string
+  title: string
+  due_date: string | null
+  owner: string
+  priority: Priority
+  done: boolean
+  done_date: string | null
+  notes: string
+  created_at?: string
+}
+
+export const DOC_CATEGORIES = [
+  'Registration & licence', 'Tax (MIRA)', 'Lease & rent agreement', 'Insurance', 'Vehicle & vessel',
+  'Contract', 'Bank', 'Expat quota', 'Other',
+] as const
+
 export const CATEGORIES = [
   'Rent', 'Utilities', 'Internet & phone', 'Permits & fees', 'Insurance',
   'Vehicles & transport', 'Materials & tools', 'Office supplies', 'Repairs & maintenance', 'Other',

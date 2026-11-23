@@ -9,10 +9,12 @@ import StaffView from './views/StaffView'
 import PayrollView from './views/PayrollView'
 import EstimateView from './views/EstimateView'
 import TeamView from './views/TeamView'
+import DashboardView from './views/DashboardView'
+import CompanyView from './views/CompanyView'
 
-const VIEWS = [['month', 'Month'], ['staff', 'Staff'], ['payroll', 'Payroll'], ['estimate', 'Estimate'], ['team', 'Team']] as const
+const VIEWS = [['home', 'Dashboard'], ['month', 'Month'], ['staff', 'Staff'], ['payroll', 'Payroll'], ['estimate', 'Estimate'], ['company', 'Company'], ['team', 'Team']] as const
 type View = typeof VIEWS[number][0]
-const viewFromHash = (): View => (VIEWS.find(v => v[0] === location.hash.slice(1))?.[0] ?? 'month')
+const viewFromHash = (): View => (VIEWS.find(v => v[0] === location.hash.slice(1))?.[0] ?? 'home')
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -40,7 +42,7 @@ function Shell({ email }: { email: string }) {
       const v = viewFromHash()
       // The estimate is usually for next month.
       if (v === 'estimate') setK(cur => (cur <= thisMonth ? shiftMonth(thisMonth, 1) : cur))
-      setView(v)
+      setView(cur => { if (cur !== v) window.scrollTo(0, 0); return v })
     }
     window.addEventListener('hashchange', on)
     on()
@@ -73,10 +75,12 @@ function Shell({ email }: { email: string }) {
       {d.me && !d.canEdit && <div className="banner">You have view-only access. Ask an admin if you need to make changes.</div>}
 
       {!d.loaded ? <p className="note">Loading…</p> : (
-        view === 'month' ? <MonthView k={k} />
+        view === 'home' ? <DashboardView />
+          : view === 'month' ? <MonthView k={k} />
           : view === 'staff' ? <StaffView />
           : view === 'payroll' ? <PayrollView k={k} />
           : view === 'estimate' ? <EstimateView k={k} />
+          : view === 'company' ? <CompanyView />
           : <TeamView />
       )}
 
