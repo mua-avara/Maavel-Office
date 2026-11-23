@@ -1,0 +1,131 @@
+import { useMemo, useState } from 'react'
+import { useData } from '../data/DataContext'
+import { byOrder, docState, isActive, isLocal } from '../lib/calc'
+import { fmt0, niceDate, todayStr } from '../lib/format'
+import type { Staff, StaffStatus } from '../lib/types'
+import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
+
+type Filter = 'Active' | 'docs' | 'Left' | 'all'
+
+export default function StaffView() {
+  const d = useData()
+  const [q, setQ] = useState('')
+  const [filter, setFilter] = useState<Filter>('Active')
+  const [edit, setEdit] = useState<Staff | 'new' | null>(null)
+
+  const active = d.staff.filter(isActive)
+  const expats = active.filter(s => !isLocal(s)).length
+  const needDocs = active.filter(s => docState(s).need).length
+  const noDates = active.filter(s => !isLocal(s) && !docState(s).hasDates).length
+
+  const list = useMemo(() => {
+    let l = [...d.staff]
+    if (filter === 'Active') l = l.filter(isActive)
+    else if (filter === 'Left') l = l.filter(s => !isActive(s))
+    else if (filter === 'docs') l = l.filter(s => isActive(s) && docState(s).need)
+    const t = q.trim().toLowerCase()
+    if (t) l = l.filter(s => [s.name, s.designation, s.passport_no, s.country].join(' ').toLowerCase().includes(t))
+    return l.sort(byOrder)
+  }, [d.staff, filter, q])
+
+  return (
+    <div className="view">
+      <div className="tiles">
+        <Tile label="Active staff" value={active.length} sub={`${expats} expatriate${expats === 1 ? '' : 's'}`} />
+        <Tile label="Monthly salaries" value={fmt0(active.reduce((a, s) => a + Number(s.basic), 0))} sub="Basic, MVR" />
+        <Tile label="Monthly allowances" value={fmt0(active.reduce((a, s) => a + Number(s.food) + Number(s.allowance), 0))} sub="Food, phone and other" />
+        <Tile label="Documents to renew" value={needDocs} sub={noDates ? `${noDates} expats have no dates yet` : 'Expired or due within 60 days'} total />
+      </div>
+      <Section title="Staff" intro="Tap a person to update their pay, passport, work permit, visa, medical or insurance dates."
+        action={<button className="primary" disabled={!d.canEdit} onClick={() => setEdit('new')}>Add staff</button>}>
+        <div className="toolbar">
+          <Field label="Search"><input value={q} placeholder="Name, job or passport no." onChange={e => setQ(e.target.value)} /></Field>
+          <Field label="Show"><select value={filter} onChange={e => setFilter(e.target.value as Filter)}>
+            <option value="Active">Active staff</option><option value="docs">Documents to renew</option><option value="Left">Left Maavel</option><option value="all">Everyone</option>
+          </select></Field>
+        </div>
+        <div className="tablewrap"><table>
+          <thead><tr><th>Name</th><th>Documents</th><th className="num">Basic</th><th className="num hide-sm">Allowances</th><th className="hide-sm">Country</th></tr></thead>
+          <tbody>
+            {!list.length ? <Empty cols={5}>Nobody matches.</Empty> : list.map(s => {
+              const ds = docState(s)
+              return (
+                <tr key={s.id} className="clickable" onClick={() => setEdit(s)}>
+                  <td className="name"><button className="link plain" onClick={e => { e.stopPropagation(); setEdit(s) }}>{s.name}</button><span className="sub">{s.designation}{s.status === 'On leave' ? ' · on leave' : ''}</span></td>
+                  <td>{!isActive(s) ? <Pill kind="left">Left{s.left_date ? ` ${niceDate(s.left_date)}` : ''}</Pill> : isLocal(s) && !ds.hasDates ? <span className="sub">–</span> : <Pill kind={ds.key}>{ds.text}</Pill>}</td>
+                  <td className="num">{fmt0(s.basic)}</td>
+                  <td className="num hide-sm">{fmt0(Number(s.food) + Number(s.allowance))}</td>
+                  <td className="hide-sm cat">{s.country}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table></div>
+      </Section>
+      <StaffDialog staff={edit} onClose={() => setEdit(null)} />
+    </div>
+  )
+}
+
+const blank = { name: '', designation: '', country: '', status: 'Active' as StaffStatus, basic: '', food: '1200', allowance: '0', join_date: '', left_date: '', phone: '', passport_no: '', passport_exp: '', wp_no: '', wp_exp: '', visa_exp: '', medical_exp: '', insurance_exp: '', notes: '' }
+type Form = typeof blank
+
+function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose: () => void }) {
+  const d = useData()
+  const s = staff && staff !== 'new' ? staff : null
+  const [f, setF] = useState<Form>(blank)
+  const [key, setKey] = useState<typeof staff>(null)
+  if (staff !== key) {
+    setKey(staff)
+    if (staff) setF(s ? (Object.fromEntries(Object.keys(blank).map(k => [k, s[k as keyof Staff] == null ? '' : String(s[k as keyof Staff])])) as Form) : blank)
+  }
+  const set = (k: keyof Form) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+  const date = (v: string) => (v ? v : null)
+
+  async function save() {
+    if (!f.name.trim()) { d.toast('Enter a name.'); return }
+    const row: Partial<Staff> = {
+      name: f.name.trim(), designation: f.designation.trim(), country: f.country.trim(), status: f.status,
+      basic: Number(f.basic) || 0, food: Number(f.food) || 0, allowance: Number(f.allowance) || 0,
+      join_date: date(f.join_date), left_date: f.status === 'Left' ? (f.left_date || todayStr) : date(f.left_date),
+      phone: f.phone.trim(), passport_no: f.passport_no.trim(), passport_exp: date(f.passport_exp), wp_no: f.wp_no.trim(),
+      wp_exp: date(f.wp_exp), visa_exp: date(f.visa_exp), medical_exp: date(f.medical_exp), insurance_exp: date(f.insurance_exp), notes: f.notes.trim(),
+    }
+    if (s) row.id = s.id
+    else row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1
+    if (await d.upsert('staff', row)) { onClose(); d.toast('Saved') }
+  }
+
+  return (
+    <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={onClose} onSubmit={save}
+      footer={s ? <ConfirmDelete onConfirm={async () => { if (await d.remove('staff', s.id)) { onClose(); d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
+      <fieldset disabled={!d.canEdit}>
+        <div className="grid2">
+          <Field label="Full name"><input required value={f.name} onChange={set('name')} /></Field>
+          <Field label="Designation"><input value={f.designation} placeholder="e.g. Mason" onChange={set('designation')} /></Field>
+          <Field label="Country"><input value={f.country} list="countries" placeholder="e.g. Bangladesh" onChange={set('country')} /></Field>
+          <Field label="Status"><select value={f.status} onChange={set('status')}><option>Active</option><option>On leave</option><option>Left</option></select></Field>
+          <Field label="Basic salary (MVR)"><input type="number" min="0" inputMode="decimal" value={f.basic} onChange={set('basic')} /></Field>
+          <Field label="Food allowance (MVR)"><input type="number" min="0" inputMode="decimal" value={f.food} onChange={set('food')} /></Field>
+          <Field label="Phone / other allowance (MVR)"><input type="number" min="0" inputMode="decimal" value={f.allowance} onChange={set('allowance')} /></Field>
+          <Field label="Phone"><input inputMode="tel" value={f.phone} onChange={set('phone')} /></Field>
+          <Field label="Joined"><input type="date" value={f.join_date} onChange={set('join_date')} /></Field>
+          <Field label="Left on"><input type="date" value={f.left_date} onChange={set('left_date')} /></Field>
+        </div>
+        <fieldset className="box"><legend>Passport and permits</legend>
+          <div className="grid2">
+            <Field label="Passport / ID no."><input value={f.passport_no} onChange={set('passport_no')} /></Field>
+            <Field label="Passport expiry"><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
+            <Field label="Work permit no."><input value={f.wp_no} onChange={set('wp_no')} /></Field>
+            <Field label="Work permit expiry"><input type="date" value={f.wp_exp} onChange={set('wp_exp')} /></Field>
+            <Field label="Work visa expiry"><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
+            <Field label="Medical expiry"><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
+            <Field label="Insurance expiry"><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
+          </div>
+        </fieldset>
+        <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
+      </fieldset>
+      <datalist id="countries"><option>Maldives</option><option>Bangladesh</option><option>India</option><option>Sri Lanka</option><option>Nepal</option></datalist>
+    </Modal>
+  )
+}

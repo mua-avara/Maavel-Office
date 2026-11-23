@@ -1,0 +1,145 @@
+-- Maavel Office: database schema for Supabase (Postgres)
+-- Run once in Supabase: Dashboard -> SQL Editor -> New query -> paste -> Run.
+
+-- ---------- People who can sign in ----------
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  email text not null,
+  full_name text,
+  role text not null default 'viewer' check (role in ('admin','editor','viewer')),
+  created_at timestamptz not null default now()
+);
+
+-- New sign-ins get a profile automatically (as viewer). Promote people from the Team tab.
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email, role)
+  values (new.id, new.email,
+          case when not exists (select 1 from public.profiles) then 'admin' else 'viewer' end)
+  on conflict (id) do nothing;
+  return new;
+end $$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+create or replace function public.my_role() returns text
+language sql stable security definer set search_path = public as $$
+  select role from public.profiles where id = auth.uid()
+$$;
+
+-- ---------- Business data ----------
+create table if not exists public.staff (
+  id text primary key default gen_random_uuid()::text,
+  name text not null,
+  designation text default '',
+  country text default '',
+  status text not null default 'Active' check (status in ('Active','On leave','Left')),
+  basic numeric not null default 0,
+  food numeric not null default 0,
+  allowance numeric not null default 0,
+  join_date date,
+  left_date date,
+  phone text default '',
+  passport_no text default '',
+  passport_exp date,
+  wp_no text default '',
+  wp_exp date,
+  visa_exp date,
+  medical_exp date,
+  insurance_exp date,
+  notes text default '',
+  sort_order int not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.bills (
+  id text primary key default gen_random_uuid()::text,
+  name text not null,
+  category text not null default 'Other',
+  amount numeric,               -- null = varies month to month
+  due_day int not null default 10 check (due_day between 1 and 31),
+  provider text default '',
+  account text default '',
+  active boolean not null default true,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.payments (
+  id text primary key default gen_random_uuid()::text,
+  month text not null check (month ~ '^\d{4}-\d{2}$'),
+  bill_id text references public.bills(id) on delete set null,
+  description text not null default '',
+  category text not null default 'Other',
+  amount numeric not null default 0,
+  date date not null,
+  method text default '',
+  ref text default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists payments_month_idx on public.payments(month);
+
+create table if not exists public.payroll_months (
+  month text primary key check (month ~ '^\d{4}-\d{2}$'),
+  salaries numeric not null default 0,
+  food numeric not null default 0,
+  allowances numeric not null default 0,
+  staff_count int,
+  lines jsonb,                   -- per-person lines when built in the app
+  pay_status text not null default 'paid' check (pay_status in ('draft','paid')),
+  paid_date date,
+  source text default '',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.estimate_items (
+  id text primary key default gen_random_uuid()::text,
+  month text not null check (month ~ '^\d{4}-\d{2}$'),
+  description text not null,
+  category text not null default 'Other',
+  amount numeric not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists estimate_items_month_idx on public.estimate_items(month);
+
+-- ---------- Row level security ----------
+-- Everyone signed in with a profile can read. Admins and editors can change data.
+-- Only admins can change who has which role.
+alter table public.profiles       enable row level security;
+alter table public.staff          enable row level security;
+alter table public.bills          enable row level security;
+alter table public.payments       enable row level security;
+alter table public.payroll_months enable row level security;
+alter table public.estimate_items enable row level security;
+
+drop policy if exists "profiles read" on public.profiles;
+create policy "profiles read" on public.profiles for select to authenticated using (public.my_role() is not null);
+drop policy if exists "profiles admin update" on public.profiles;
+create policy "profiles admin update" on public.profiles for update to authenticated using (public.my_role() = 'admin') with check (public.my_role() = 'admin');
+drop policy if exists "profiles self name" on public.profiles;
+create policy "profiles self name" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid() and role = public.my_role());
+
+do $$
+declare t text;
+begin
+  foreach t in array array['staff','bills','payments','payroll_months','estimate_items'] loop
+    execute format('drop policy if exists "%1$s read" on public.%1$I', t);
+    execute format('create policy "%1$s read" on public.%1$I for select to authenticated using (public.my_role() is not null)', t);
+    execute format('drop policy if exists "%1$s write" on public.%1$I', t);
+    execute format('create policy "%1$s write" on public.%1$I for all to authenticated using (public.my_role() in (''admin'',''editor'')) with check (public.my_role() in (''admin'',''editor''))', t);
+  end loop;
+end $$;
+
+-- ---------- Live updates ----------
+do $$
+declare t text;
+begin
+  foreach t in array array['staff','bills','payments','payroll_months','estimate_items','profiles'] loop
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;

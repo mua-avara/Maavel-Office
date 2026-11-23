@@ -1,0 +1,74 @@
+# Maavel Office
+
+Staff, payroll, bills and overhead estimates for **Maavel Maldives Pvt Ltd**, with PDF reports.
+
+- **Month**: rent and bills (paid / due soon / overdue), other expenses, monthly expense PDF
+- **Staff**: pay, allowances, passport, work permit, visa, medical and insurance dates, with renewal alerts
+- **Payroll**: built from the staff list each month, overtime and deductions, salary sheet PDF
+- **Estimate**: next month's overheads plus any extra items, as a PDF to share with the team
+- **Team**: who can sign in, and whether they are an admin, editor or viewer
+
+Built with React, TypeScript and Vite. Data and sign-in are on [Supabase](https://supabase.com) (free plan). Hosting is on [Cloudflare Pages](https://pages.cloudflare.com) (free). Everyone who signs in sees changes live.
+
+---
+
+## 1. Set up the database (Supabase, about 10 minutes)
+
+1. Create a free account at supabase.com and a **New project** called `maavel-office`.
+   Pick the region closest to the Maldives (for example Mumbai/`ap-south-1` or Singapore), set a strong database password and keep it safe.
+2. In the project, open **SQL Editor → New query**. Paste all of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**.
+3. Open a new query, paste [`supabase/seed.sql`](supabase/seed.sql) and click **Run**. This loads the 26 staff, 10 bills, rent payments for January to November 2026, salary totals for January to October 2026 and the December estimate item.
+4. Go to **Authentication → Sign In / Providers** and turn **off** "Allow new users to sign up". Only people you invite can then get in.
+5. Go to **Authentication → Users → Invite user** and invite yourself first. **The first person to sign in becomes the admin.** Invite your partners after that; they start as viewers, and you promote them on the **Team** tab.
+6. Go to **Project Settings → API** (or the **Connect** button) and copy the **Project URL** and the **anon public** key. You need them in step 2.
+
+## 2. Put it online (Cloudflare Pages, about 5 minutes)
+
+1. Create a free account at dash.cloudflare.com → **Workers & Pages → Create → Pages → Connect to Git**, and pick this repository.
+2. Build settings:
+   - Framework preset: **Vite** (or "None")
+   - Build command: `npm run build`
+   - Build output directory: `dist`
+3. Environment variables (Production and Preview):
+   - `VITE_SUPABASE_URL` = your Project URL
+   - `VITE_SUPABASE_ANON_KEY` = your anon public key
+   - `NODE_VERSION` = `22`
+4. **Save and Deploy**. You get an address like `https://maavel-office.pages.dev`.
+5. Back in Supabase, **Authentication → URL Configuration**: set **Site URL** to that address and add it under **Redirect URLs**. Invite and sign-in emails then link to the right place.
+
+Every push to `main` redeploys automatically.
+
+**Own web address (optional):** in Cloudflare Pages → your project → **Custom domains**, add for example `office.maavel.mv`. The domain itself is bought separately; connecting it is free. Then add it to the Supabase Redirect URLs too.
+
+## 3. Day to day
+
+- **Signing in:** enter your email and leave the password blank to get a sign-in link, or set a password on the **Team** tab and use that.
+- **Access levels:** *Admin* can change everything including who has access. *Editor* can record payments, run payroll and edit staff. *Viewer* can only look and download PDFs.
+- **Backups:** the Supabase free plan has no automatic backups. Once a month, go to **Table Editor**, open each table and use **Export → CSV**, or ask a developer to schedule a `pg_dump`.
+- **Inactivity:** a free Supabase project pauses if nobody uses it for a week. Your data is kept; open the Supabase dashboard and click **Restore**.
+
+## Running it on a computer (developers)
+
+```bash
+npm install
+cp .env.example .env.local   # then fill in the two Supabase values
+npm run dev                  # http://localhost:5173
+npm run build                # production build into dist/
+```
+
+Project layout:
+
+```
+src/
+  App.tsx              sign-in gate, tabs, month picker
+  auth/Login.tsx       email link / password sign-in
+  data/DataContext.tsx loads tables, live updates, save/delete
+  lib/calc.ts          payroll, bill status, estimate, document alerts
+  lib/pdf.ts           expense, salary sheet and estimate PDFs
+  views/               Month, Staff, Payroll, Estimate, Team
+supabase/
+  schema.sql           tables, row-level security, live updates
+  seed.sql             starting data (Nov 2026)
+```
+
+Security is enforced in the database (row-level security in `schema.sql`), not only in the app: viewers cannot write even with their own tools, and only admins can change roles. The anon key is meant to be public; never put the **service_role** key in this app or in Cloudflare.
