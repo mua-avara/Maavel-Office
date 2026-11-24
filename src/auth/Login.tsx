@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -32,7 +33,12 @@ export default function Login() {
         <div className="brandrow"><img src="/logo.jpg" alt="" /><div className="brand"><b>MAAVEL</b><span>Office &amp; overheads</span></div></div>
         <h1>Sign in</h1>
         <label>Work email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
-        <label>Password<input type="password" autoComplete="current-password" value={password} placeholder="Leave blank to get an email link" onChange={e => setPassword(e.target.value)} /></label>
+        <label>Password
+          <span className="pw">
+            <input type={show ? 'text' : 'password'} autoComplete="current-password" value={password} placeholder="Leave blank to get an email link" onChange={e => setPassword(e.target.value)} />
+            <button type="button" className="link" aria-pressed={show} onClick={() => setShow(v => !v)}>{show ? 'Hide' : 'Show'}</button>
+          </span>
+        </label>
         {msg && <p className={msg.ok ? 'ok' : 'err'} role="status">{msg.text}</p>}
         <button className="primary" type="submit" disabled={busy}>{password ? 'Sign in' : 'Email me a sign-in link'}</button>
         {password && <button type="button" className="link" onClick={sendLink}>Forgot password? Email me a link</button>}

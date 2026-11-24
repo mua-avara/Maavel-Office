@@ -21,7 +21,7 @@ export default function DashboardView() {
     <div className="view">
       <div className="hello">
         <div className="grow">
-          <h1>{greeting()}{name ? `, ${name}` : ''}</h1>
+          <h2 className="greet">{greeting()}{name ? `, ${name}` : ''}</h2>
           <p className="note">{niceDate(todayStr)} · {x.alerts.length ? `${urgent} urgent, ${x.alerts.length - urgent} coming up` : 'Nothing needs your attention right now'}</p>
         </div>
       </div>

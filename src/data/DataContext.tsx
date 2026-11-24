@@ -50,7 +50,10 @@ export function DataProvider({ userId, children }: { userId: string; children: R
 
   const toast = useCallback((msg: string) => {
     setToastMsg(msg)
-    window.setTimeout(() => setToastMsg(m => (m === msg ? '' : m)), 2800)
+    if (!msg) return
+    // Short confirmations go quickly; longer messages (usually problems) stay long enough to read.
+    const ms = Math.min(10000, Math.max(3000, msg.split(/\s+/).length * 450))
+    window.setTimeout(() => setToastMsg(m => (m === msg ? '' : m)), ms)
   }, [])
 
   const load = useCallback(async (t: TableName) => {

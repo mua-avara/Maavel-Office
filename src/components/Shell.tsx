@@ -37,6 +37,12 @@ export default function Shell({ view, email, month, setMonth, children }: {
   // Close the phone menu whenever the page changes.
   const [lastView, setLastView] = useState(view)
   if (view !== lastView) { setLastView(view); setDrawer(false) }
+  // After moving to another page, put keyboard / screen-reader focus on the new content.
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    document.getElementById('main')?.focus({ preventScroll: true })
+  }, [view])
   useEffect(() => {
     if (!drawer) return
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false) }
@@ -49,9 +55,10 @@ export default function Shell({ view, email, month, setMonth, children }: {
 
   return (
     <div className={`app${collapsed ? ' collapsed' : ''}${drawer ? ' drawer-open' : ''}`}>
+      <a className="skip" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main')?.focus() }}>Skip to main content</a>
       <aside className="side" aria-label="Main menu">
         <div className="side-brand">
-          <img src="/logo.jpg" alt="" />
+          <img src="/logo.jpg" alt="" width="40" height="40" />
           <div className="brand"><b>MAAVEL</b><span>Office</span></div>
           <button className="iconbtn only-phone" aria-label="Close menu" onClick={() => setDrawer(false)}><Icon name="close" /></button>
         </div>
@@ -60,7 +67,7 @@ export default function Shell({ view, email, month, setMonth, children }: {
             <div key={g.group || 'main'} className="side-group">
               {g.group && <p className="side-label">{g.group}</p>}
               {g.items.map(i => (
-                <a key={i.id} href={`#${i.id}`} aria-current={view === i.id ? 'page' : undefined} title={collapsed ? i.label : undefined}>
+                <a key={i.id} href={`#${i.id}`} aria-current={view === i.id ? 'page' : undefined} aria-label={i.label} title={collapsed ? i.label : undefined}>
                   <Icon name={i.icon} /><span>{i.label}</span>
                 </a>
               ))}
@@ -98,7 +105,7 @@ export default function Shell({ view, email, month, setMonth, children }: {
           <QuickTheme />
         </header>
 
-        <main className="content">{children}</main>
+        <main className="content" id="main" tabIndex={-1} aria-label={labelOf(view)}>{children}</main>
       </div>
 
       <nav className="bottombar" aria-label="Quick menu">
@@ -108,7 +115,10 @@ export default function Shell({ view, email, month, setMonth, children }: {
         })}
         <button type="button" onClick={() => setDrawer(true)} aria-current={!MOBILE.includes(view) ? 'page' : undefined}><Icon name="menu" /><span>More</span></button>
       </nav>
-      <div className={`toast${d.toastMsg ? ' show' : ''}`} role="status">{d.toastMsg}</div>
+      <div className={`toast${d.toastMsg ? ' show' : ''}`} role="status" aria-live="polite">
+        <span>{d.toastMsg}</span>
+        {d.toastMsg && <button type="button" className="toast-x" aria-label="Dismiss message" onClick={() => d.toast('')}><Icon name="close" size={16} /></button>}
+      </div>
     </div>
   )
 }

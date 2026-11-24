@@ -70,7 +70,7 @@ export function ConfirmDelete({ label = 'Delete', onConfirm }: { label?: string;
 }
 
 export function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
-  return <label className={wide ? 'span2' : undefined}>{label}{children}</label>
+  return <label className={wide ? 'span2' : undefined}><span className="lbl">{label}</span>{children}</label>
 }
 
 export const Empty = ({ cols, children }: { cols: number; children: ReactNode }) => (
