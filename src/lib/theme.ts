@@ -12,7 +12,7 @@ export function applyTheme(t: ThemeChoice) {
   else root.setAttribute('data-theme', t)
   try { localStorage.setItem(KEY, t) } catch { /* private mode */ }
   const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b1220' : '#12264a')
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0f17' : '#eef0f4')
 }
 
 /** Small per-device preferences (collapsed sidebar, notifications already seen). */

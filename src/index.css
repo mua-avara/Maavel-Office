@@ -430,3 +430,161 @@ ul.docrows li:last-child{border-bottom:none}
   ul.todos input[type=checkbox]{width:26px;height:26px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before{transition:none!important;animation:none!important}}
+
+/* =====================================================================
+   Liquid glass, minimal (Nov 2026)
+   Frosted translucent panels with a thin light edge, floating over a quiet
+   tinted backdrop. System font throughout, a smaller type scale, colour
+   used sparingly. Overrides the rules above.
+   ===================================================================== */
+:root{
+  --display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,system-ui,sans-serif;
+  --bg:#eef0f4;
+  --glass:rgba(255,255,255,.62); --glass-2:rgba(255,255,255,.42); --glass-strong:rgba(255,255,255,.82);
+  --glass-edge:rgba(255,255,255,.75); --glass-line:rgba(20,28,45,.08);
+  --surface:var(--glass); --surface-2:var(--glass-2); --line:var(--glass-line); --line-strong:rgba(20,28,45,.16);
+  --blur:saturate(180%) blur(24px);
+  --hi:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.35);
+  --shadow:0 1px 1px rgba(20,28,45,.04),0 8px 28px -10px rgba(20,28,45,.18);
+  --amb-1:rgba(27,55,102,.20); --amb-2:rgba(233,84,31,.12); --amb-3:rgba(90,150,200,.18);
+  --side:var(--glass); --side-ink:var(--ink); --side-muted:var(--muted); --side-hover:rgba(20,28,45,.05); --side-active:rgba(255,255,255,.85);
+  --orange-on-navy:var(--orange-fill);
+  --r:20px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0b0f17;
+  --glass:rgba(30,38,54,.55); --glass-2:rgba(255,255,255,.04); --glass-strong:rgba(44,54,74,.85);
+  --glass-edge:rgba(255,255,255,.10); --glass-line:rgba(255,255,255,.08);
+  --surface:var(--glass); --surface-2:var(--glass-2); --line:var(--glass-line); --line-strong:rgba(255,255,255,.16);
+  --hi:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.04);
+  --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  --amb-1:rgba(70,110,200,.22); --amb-2:rgba(255,110,60,.10); --amb-3:rgba(40,150,180,.14);
+  --side:var(--glass); --side-ink:var(--ink); --side-muted:var(--muted); --side-hover:rgba(255,255,255,.05); --side-active:rgba(255,255,255,.10);
+  --orange-on-navy:#ff8150;}}
+:root[data-theme="dark"]{
+  --bg:#0b0f17;
+  --glass:rgba(30,38,54,.55); --glass-2:rgba(255,255,255,.04); --glass-strong:rgba(44,54,74,.85);
+  --glass-edge:rgba(255,255,255,.10); --glass-line:rgba(255,255,255,.08);
+  --surface:var(--glass); --surface-2:var(--glass-2); --line:var(--glass-line); --line-strong:rgba(255,255,255,.16);
+  --hi:inset 0 1px 0 rgba(255,255,255,.10),inset 0 0 0 1px rgba(255,255,255,.04);
+  --shadow:0 10px 30px -12px rgba(0,0,0,.6);
+  --amb-1:rgba(70,110,200,.22); --amb-2:rgba(255,110,60,.10); --amb-3:rgba(40,150,180,.14);
+  --side:var(--glass); --side-ink:var(--ink); --side-muted:var(--muted); --side-hover:rgba(255,255,255,.05); --side-active:rgba(255,255,255,.10);
+  --orange-on-navy:#ff8150;}
+
+/* quiet ambient backdrop the glass sits on */
+body{background:transparent;font-size:14px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(50% 45% at 12% 8%,var(--amb-1),transparent 70%),
+  radial-gradient(40% 40% at 92% 12%,var(--amb-2),transparent 70%),
+  radial-gradient(55% 50% at 70% 100%,var(--amb-3),transparent 70%),var(--bg)}
+
+/* glass surfaces */
+section,.tile,.panel-pop,dialog,.monthbar,.searchbox,.quickbtn,.bottombar,.login .panel{
+  background:var(--glass);border:1px solid var(--glass-edge);box-shadow:var(--hi),var(--shadow);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+dialog{background:var(--glass-strong)}
+dialog::backdrop{background:rgba(10,14,22,.28);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.panel-pop{background:var(--glass-strong)}
+section{border-radius:var(--r);padding:18px}
+.tile{border-radius:18px;padding:14px 16px}
+.tiles.small .tile{background:var(--glass-2);box-shadow:var(--hi)}
+.files li,ul.timeline time,.progress,ul.barlist .track{background:var(--glass-2);border-color:var(--glass-line)}
+
+/* the highlighted tile: navy-tinted glass rather than a solid block */
+.tile.total{background:linear-gradient(160deg,rgba(27,55,102,.88),rgba(27,55,102,.72));border-color:rgba(255,255,255,.18);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),var(--shadow)}
+:root[data-theme="dark"] .tile.total{background:linear-gradient(160deg,rgba(61,103,194,.55),rgba(61,103,194,.35))}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tile.total{background:linear-gradient(160deg,rgba(61,103,194,.55),rgba(61,103,194,.35))}}
+
+/* sidebar: a floating glass panel (desktop) */
+.brand b{color:var(--navy);font:700 17px/1 var(--display);letter-spacing:.18em}
+.brand span{font:600 10.5px/1.4 var(--display);letter-spacing:.22em}
+.side-nav a{font-size:13.5px;padding:9px 10px;border-radius:12px}
+.side-nav a:hover{color:var(--ink)}
+.side-nav a[aria-current="page"]{color:var(--ink);box-shadow:var(--hi),0 2px 8px -2px rgba(20,28,45,.15)}
+.side-nav a[aria-current="page"]::before{display:none}
+.side-label{font-size:10.5px}
+.side-foot{border-top:1px solid var(--glass-line)}
+.who b{color:var(--ink);font-size:13px}
+.side .iconbtn:hover,.side-collapse:hover,.seg button:hover{color:var(--ink)}
+.seg{background:var(--glass-2);border:1px solid var(--glass-line)}
+.seg button{font-size:12px}
+.seg button[aria-checked="true"]{background:var(--side-active);color:var(--ink);box-shadow:var(--hi),0 1px 4px rgba(20,28,45,.12)}
+.side-brand img{width:34px;height:34px;border-radius:10px}
+@media (min-width:900px){
+  .side{inset:12px auto 12px 12px;border-radius:24px;border:1px solid var(--glass-edge);box-shadow:var(--hi),var(--shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+  .main{margin-left:calc(var(--side-w) + 12px)}
+  .side-brand{padding:16px 16px 12px;min-height:66px}
+}
+@media (max-width:899px){
+  .side{background:var(--glass-strong);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-right:1px solid var(--glass-edge)}
+  .bottombar{border:none;border-top:1px solid var(--glass-edge);box-shadow:0 -6px 24px -12px rgba(20,28,45,.2);border-radius:0}
+  .bottombar a,.bottombar button{font-size:10.5px}
+}
+
+/* top bar: transparent, content scrolls under a soft frost */
+.topbar{background:color-mix(in srgb,var(--bg) 55%,transparent);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);border-bottom:1px solid var(--glass-line);min-height:60px}
+.page-title{font:600 19px/1.15 var(--display);letter-spacing:-.01em}
+@media (min-width:900px){.searchbox{border-radius:12px;width:260px;height:38px}}
+@media (max-width:899px){
+  .searchbox{background:none;border-color:transparent;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+  .search.open .searchbox,.searchbox:focus-within{background:var(--glass-strong);border-color:var(--glass-edge);box-shadow:var(--hi),var(--shadow);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur)}
+}
+.monthbar{border-radius:14px}
+.monthbar b{font:600 14.5px/1 var(--display);letter-spacing:0}
+
+/* smaller, calmer type */
+.sec-head h2{font:600 16px/1.25 var(--display);letter-spacing:-.005em}
+.sec-head p,.note,td .sub,.sub,.tile em,.tile small{font-size:12px}
+.tile small{font-weight:500}
+.tile strong{font:600 24px/1.15 var(--display);letter-spacing:-.015em}
+.tiles.small .tile strong{font-size:19px}
+.hello h1,.hello .greet{font:600 24px/1.15 var(--display);letter-spacing:-.015em}
+.hello .note{font-size:13px}
+h3.mini,th,.side-label{font-size:10.5px}
+td{padding:9px 10px;font-size:13.5px}
+th{padding:7px 10px}
+button,a.btnlink,.quickbtn{font-size:13px;border-radius:12px}
+button{padding:9px 13px}
+button.small{font-size:12.5px;padding:6px 10px}
+.pill{font-size:11.5px;padding:2px 9px}
+label{font-size:12px}
+input,select{font-size:14px;border-radius:12px;background:var(--glass-2);border-color:var(--line-strong)}
+.searchbox input,.searchbox input:focus{font-size:14px}
+dialog h3{font:600 18px/1.2 var(--display)}
+.profile-head h2{font:600 22px/1.15 var(--display);letter-spacing:-.01em}
+ul.timeline time b{font:600 16px/1 var(--display)}
+ul.timeline a b,ul.notes b,.results b,ul.alerts a b{font-size:13.5px}
+ul.alerts a span,ul.timeline a span,ul.notes small,.results small{font-size:12px}
+ul.alerts li{border-radius:14px}
+.big{font:600 28px/1.1 var(--display)}
+.pop-head b{font:600 15px/1 var(--display)}
+.avatar{font:600 22px/1 var(--display);border-radius:14px}
+.login h1{font:600 24px/1.15 var(--display)}
+.content{gap:16px;padding-top:20px}
+.view,.board-main,.board-side{gap:16px}
+.board,.cols{gap:16px}
+.tiles{gap:12px}
+@media (max-width:760px){.tile strong{font-size:21px}.hello h1,.hello .greet{font-size:21px}}
+
+/* buttons: glassy secondary, solid navy primary */
+button{background:var(--glass-strong);border-color:var(--glass-edge);box-shadow:var(--hi),0 1px 2px rgba(20,28,45,.06)}
+button:hover{background:var(--glass-strong);border-color:var(--line-strong)}
+button.primary,a.btnlink{box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 4px 12px -4px rgba(27,55,102,.45)}
+button.link,button.link:hover,.iconbtn,.iconbtn:hover,.seg button,.side-collapse,.bottombar a,.bottombar button,.plot .bar,.toast-x,.pw button.link{box-shadow:none;background-color:transparent;border-color:transparent}
+.iconbtn:hover{background:var(--side-hover)}
+.seg button[aria-checked="true"]{background:var(--side-active)}
+
+/* iPhones must not zoom into fields: keep 16px on touch screens */
+@media (pointer:coarse){input,select,.searchbox input,.searchbox input:focus{font-size:16px} ul.timeline a,ul.alerts a,ul.notes a,.results a{min-height:44px;justify-content:center}}
+
+/* glass needs a fallback where blur isn't supported */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  :root{--glass:rgba(255,255,255,.94);--glass-strong:#fff}
+  :root[data-theme="dark"]{--glass:rgba(24,31,45,.96);--glass-strong:#1c2433}
+}
+@media (prefers-reduced-transparency:reduce){
+  :root{--glass:rgba(255,255,255,.96);--glass-strong:#fff;--glass-2:rgba(255,255,255,.7)}
+  :root[data-theme="dark"]{--glass:#161d2a;--glass-strong:#1c2433;--glass-2:#1a2231}
+}
+.tile.total small,.tile.total em{color:rgba(255,255,255,.88)}
