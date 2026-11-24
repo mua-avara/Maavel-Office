@@ -198,3 +198,15 @@ begin
     end;
   end loop;
 end $$;
+
+-- ---------- Table access for signed-in users (added Nov 2026) ----------
+-- Newer Supabase projects don't give the API roles access to tables made in SQL.
+-- Signed-in users get table access here; the row-level security policies above
+-- still decide what each role (admin, editor, viewer) can actually see or change.
+-- Visitors who are not signed in (anon) get nothing.
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on
+  public.profiles, public.staff, public.bills, public.payments,
+  public.payroll_months, public.estimate_items, public.company_docs, public.tasks
+  to authenticated;
+grant execute on function public.my_role() to authenticated;
