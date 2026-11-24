@@ -46,6 +46,10 @@ export interface Bill {
   provider: string
   account: string
   active: boolean
+  /** Where to send the money (added Nov 2026; missing until that SQL is run). */
+  pay_name?: string
+  pay_account?: string
+  pay_bank?: string
 }
 
 export interface Payment {
@@ -136,7 +140,7 @@ export interface FileRow {
   created_at: string
 }
 
-export const STAFF_FILE_KINDS = ['Passport photo', 'Passport copy', 'E-visa', 'Work permit', 'Medical', 'Insurance', 'Contract', 'Other'] as const
+export const STAFF_FILE_KINDS = ['Profile photo', 'Passport photo', 'Passport copy', 'E-visa', 'Work permit', 'Medical', 'Insurance', 'Contract', 'Other'] as const
 export const COMPANY_FILE_KINDS = ['Certificate / licence', 'Receipt', 'Letter', 'Other'] as const
 export const PROJECT_FILE_KINDS = ['Contract', 'Drawing', 'Quotation', 'Invoice', 'Photo', 'Other'] as const
 

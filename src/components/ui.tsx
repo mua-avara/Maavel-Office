@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { copyText } from '../lib/copy'
 
 export function Tile({ label, value, sub, total }: { label: string; value: ReactNode; sub?: ReactNode; total?: boolean }) {
   return (
@@ -99,4 +100,20 @@ function CountUp({ value }: { value: number | string }) {
   }, [target, still])
   const n = Math.round(still || !Number.isFinite(target) ? target : shown)
   return <>{comma || Math.abs(n) >= 1000 ? n.toLocaleString('en-US') : n}</>
+}
+
+/** A value (e.g. an account number) with a one-tap copy button. */
+export function CopyValue({ value, what = 'Account number', onCopied }: { value: string; what?: string; onCopied: (msg: string) => void }) {
+  const [done, setDone] = useState(false)
+  async function copy(e: { stopPropagation: () => void }) {
+    e.stopPropagation()
+    if (await copyText(value.replace(/\s+/g, ''))) { setDone(true); setTimeout(() => setDone(false), 1600); onCopied(`${what} copied`) }
+    else onCopied('Couldn’t copy. Press and hold the number to select it.')
+  }
+  return (
+    <span className="copyval">
+      <code>{value}</code>
+      <button type="button" className={`copybtn${done ? ' done' : ''}`} onClick={copy} aria-label={`Copy ${what.toLowerCase()} ${value}`}>{done ? 'Copied' : 'Copy'}</button>
+    </span>
+  )
 }

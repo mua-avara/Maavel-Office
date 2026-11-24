@@ -111,12 +111,13 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
   )
 }
 
-/** The latest photo of a given kind (e.g. passport photo), or initials. */
-export function Photo({ ownerType, ownerId, kind, name }: { ownerType: OwnerType; ownerId: string; kind: string; name: string }) {
+/** The person's photo: latest "Profile photo", else latest "Passport photo", else initials. */
+export function Photo({ ownerType, ownerId, kinds = ['Profile photo', 'Passport photo'], name, small }: {
+  ownerType: OwnerType; ownerId: string; kinds?: string[]; name: string; small?: boolean
+}) {
   const d = useData()
-  const f = d.files
-    .filter(x => x.owner_type === ownerType && x.owner_id === ownerId && x.kind === kind && x.mime.startsWith('image/'))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+  const mine = d.files.filter(x => x.owner_type === ownerType && x.owner_id === ownerId && x.mime.startsWith('image/') && kinds.includes(x.kind))
+  const f = kinds.map(k => mine.filter(x => x.kind === k).sort((a, b) => b.created_at.localeCompare(a.created_at))[0]).find(Boolean)
   const [src, setSrc] = useState<{ path: string; url: string } | null>(null)
   const path = f?.path
   useEffect(() => {
@@ -126,7 +127,35 @@ export function Photo({ ownerType, ownerId, kind, name }: { ownerType: OwnerType
     return () => { alive = false }
   }, [path])
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]?.toUpperCase()).join('')
+  const cls = `avatar${small ? ' sm' : ''}`
   return f && src?.path === f.path
-    ? <img className="avatar" src={src.url} alt={`${name} photo`} />
-    : <span className="avatar" aria-hidden>{initials || '?'}</span>
+    ? <img className={cls} src={src.url} alt="" loading="lazy" />
+    : <span className={cls} aria-hidden>{initials || '?'}</span>
+}
+
+/** The profile photo with a "change photo" control for editors. */
+export function EditablePhoto({ ownerId, name }: { ownerId: string; name: string }) {
+  const d = useData()
+  const input = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  if (!d.canEdit || d.missing.includes('files')) return <Photo ownerType="staff" ownerId={ownerId} name={name} />
+  async function picked(file: File | undefined) {
+    if (!file) return
+    if (!file.type.startsWith('image/')) { d.toast('Choose a photo (JPG or PNG).'); return }
+    setBusy(true)
+    const err = await uploadFile('staff', ownerId, 'Profile photo', file)
+    await d.reload('files')
+    setBusy(false)
+    if (input.current) input.current.value = ''
+    d.toast(err ?? 'Profile photo updated')
+  }
+  return (
+    <>
+      <button type="button" className={`photo-edit${busy ? ' busy' : ''}`} onClick={() => input.current?.click()} aria-label={`Change profile photo for ${name}`} title="Change photo">
+        <Photo ownerType="staff" ownerId={ownerId} name={name} />
+        <span className="photo-cam" aria-hidden>{busy ? 'Uploading…' : 'Change'}</span>
+      </button>
+      <input ref={input} type="file" hidden accept="image/*" onChange={e => picked(e.target.files?.[0])} />
+    </>
+  )
 }

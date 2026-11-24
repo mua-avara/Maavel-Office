@@ -78,7 +78,8 @@ export async function expensePdf(c: MonthSummary) {
   table(p, { head: [['Date', 'Item', 'Category', 'Method', 'Ref.', 'MVR']], body: det.length ? det : [['', 'No payments recorded this month', '', '', '', '']], theme: 'striped', alternateRowStyles: { fillColor: [246, 247, 250] }, columnStyles: { 0: { cellWidth: 24 }, 5: { halign: 'right', cellWidth: 26 } } })
   if (c.unpaid.length) {
     section(p, 'Bills not yet paid')
-    table(p, { head: [['Bill', 'Due', 'Status', 'MVR']], body: c.unpaid.map(r => [r.bill.name, niceDate(r.due), r.status.label, r.bill.amount == null ? 'Varies' : fmt(r.bill.amount)]), headStyles: { ...head, fillColor: ORANGE }, columnStyles: { 3: { halign: 'right', cellWidth: 26 } } })
+    const payTo = (b: (typeof c.unpaid)[number]['bill']) => [b.pay_name, b.pay_bank, b.pay_account].filter(Boolean).join('\n')
+    table(p, { head: [['Bill', 'Due', 'Status', 'Pay to', 'MVR']], body: c.unpaid.map(r => [r.bill.name, niceDate(r.due), r.status.label, payTo(r.bill), r.bill.amount == null ? 'Varies' : fmt(r.bill.amount)]), headStyles: { ...head, fillColor: ORANGE }, columnStyles: { 3: { cellWidth: 44 }, 4: { halign: 'right', cellWidth: 26 } } })
   }
   finish(p, 'Prepared by', 'Approved by (Director)', `Expense report ${monthName(c.k)}`, `Maavel-expenses-${c.k}.pdf`)
 }

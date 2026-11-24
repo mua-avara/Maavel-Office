@@ -5,7 +5,7 @@ import { expiryLevel, LEVEL_PILL } from '../lib/dashboard'
 import { fmt0, monthName, niceDate, num, todayStr } from '../lib/format'
 import { LEAVE_TYPES, type Leave, type LeaveType, type Staff } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section } from '../components/ui'
-import Files, { Photo } from '../components/Files'
+import Files, { EditablePhoto } from '../components/Files'
 import { StaffDialog } from './StaffView'
 
 /** Each document row: the expiry/number fields on the staff record and the file kind for its scans. */
@@ -49,7 +49,7 @@ export default function StaffProfile({ s }: { s: Staff }) {
       <p className="crumbs"><a href="#staff">‹ All staff</a></p>
 
       <section className="profile-head">
-        <Photo ownerType="staff" ownerId={s.id} kind="Passport photo" name={s.name} />
+        <EditablePhoto ownerId={s.id} name={s.name} />
         <div className="grow">
           <h2>{s.name}</h2>
           <p>{[s.designation, s.country].filter(Boolean).join(' · ')}</p>
@@ -73,8 +73,8 @@ export default function StaffProfile({ s }: { s: Staff }) {
             <dt>Monthly total</dt><dd><b>MVR {fmt0(num(s.basic) + num(s.food) + num(s.allowance))}</b></dd>
           </dl>
           {s.notes && <p className="note">{s.notes}</p>}
-          <h3 className="mini">Passport photo</h3>
-          <Files ownerType="staff" ownerId={s.id} kinds={['Passport photo']} compact />
+          <h3 className="mini">Photos</h3>
+          <Files ownerType="staff" ownerId={s.id} kinds={['Profile photo', 'Passport photo']} empty="Tap the photo at the top to add a profile picture." />
         </Section>
 
         <Section title="Documents" intro={isLocal(s) ? 'Maldivian staff usually only need ID and medical.' : 'Expiry dates warn 60 days ahead. Tap a file to open it.'}>

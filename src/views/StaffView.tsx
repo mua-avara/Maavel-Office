@@ -5,7 +5,7 @@ import { fmt0, niceDate, todayStr } from '../lib/format'
 import { STAFF_FILE_KINDS, type Staff, type StaffStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
-import Files from '../components/Files'
+import Files, { Photo } from '../components/Files'
 import StaffProfile from './StaffProfile'
 
 type Filter = 'Active' | 'docs' | 'Left' | 'all'
@@ -64,7 +64,7 @@ export default function StaffView({ id }: { id: string | null }) {
               const ds = docState(s)
               return (
                 <tr key={s.id} className="clickable" onClick={() => open(s)}>
-                  <td className="name"><a className="link plain" href={`#staff/${s.id}`} onClick={e => e.stopPropagation()}>{s.name}</a><span className="sub">{[s.designation, s.status === 'On leave' ? 'on leave' : '', files(s) ? `${files(s)} file${files(s) === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}</span></td>
+                  <td className="name"><div className="who-row"><Photo ownerType="staff" ownerId={s.id} name={s.name} small /><div><a className="link plain" href={`#staff/${s.id}`} onClick={e => e.stopPropagation()}>{s.name}</a><span className="sub">{[s.designation, s.status === 'On leave' ? 'on leave' : '', files(s) ? `${files(s)} file${files(s) === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}</span></div></div></td>
                   <td>{!isActive(s) ? <Pill kind="left">Left{s.left_date ? ` ${niceDate(s.left_date)}` : ''}</Pill> : isLocal(s) && !ds.hasDates ? <span className="sub">–</span> : <Pill kind={ds.key}>{ds.text}</Pill>}</td>
                   <td className="num">{fmt0(s.basic)}</td>
                   <td className="num hide-sm">{fmt0(Number(s.food) + Number(s.allowance))}</td>

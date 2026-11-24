@@ -301,3 +301,8 @@ create policy "maavel files delete" on storage.objects for delete to authenticat
 -- that role table access automatically, so it couldn't check who is an admin.
 grant usage on schema public to service_role;
 grant select, insert, update, delete on all tables in schema public to service_role;
+
+-- ---------- Bills: where to send the payment (added Nov 2026) ----------
+alter table public.bills add column if not exists pay_name text default '';
+alter table public.bills add column if not exists pay_account text default '';
+alter table public.bills add column if not exists pay_bank text default '';

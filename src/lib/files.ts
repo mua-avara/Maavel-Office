@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { copyText } from './copy'
 import type { FileRow, OwnerType } from './types'
 
 const BUCKET = 'files'
@@ -107,7 +108,6 @@ export async function shareFile(f: FileRow): Promise<'shared' | 'copied' | 'canc
     }
     const { data } = await supabase.storage.from(BUCKET).createSignedUrl(f.path, 7 * 24 * 3600)
     if (!data?.signedUrl) return 'failed'
-    await navigator.clipboard.writeText(data.signedUrl)
-    return 'copied'
+    return (await copyText(data.signedUrl)) ? 'copied' : 'failed'
   } catch { return 'failed' }
 }
