@@ -588,3 +588,113 @@ button.link,button.link:hover,.iconbtn,.iconbtn:hover,.seg button,.side-collapse
   :root[data-theme="dark"]{--glass:#161d2a;--glass-strong:#1c2433;--glass-2:#1a2231}
 }
 .tile.total small,.tile.total em{color:rgba(255,255,255,.88)}
+
+/* =====================================================================
+   Breathing space + motion (Nov 2026)
+   A slightly smaller scale with more room around everything, and calm,
+   purposeful motion. All motion switches off with "reduce motion".
+   ===================================================================== */
+:root{--side-w:232px;--ease:cubic-bezier(.22,1,.36,1);--spring:cubic-bezier(.34,1.5,.64,1)}
+.app.collapsed{--side-w:72px}
+
+/* scale and space */
+body{font-size:13.5px}
+.content{max-width:1320px;padding:28px 36px 72px;gap:22px}
+.page,.view,.board-main,.board-side{display:flex;flex-direction:column;gap:22px}
+.board,.cols{gap:22px}
+.tiles{gap:16px}
+section{padding:22px 24px;gap:16px}
+.tile{padding:18px 20px}
+.tile strong{font-size:22px}
+.tiles.small .tile strong{font-size:18px}
+.sec-head h2{font-size:15px}
+.page-title{font-size:17px}
+.hello h1,.hello .greet{font-size:22px}
+.hello .note{font-size:12.5px}
+.side-nav a{font-size:13px}
+.side-nav{gap:16px}
+td{font-size:13px;padding:10px 10px}
+.quick{gap:10px}
+.topbar{padding-left:36px;padding-right:36px}
+@media (max-width:899px){.content{padding:18px 14px calc(88px + env(safe-area-inset-bottom));gap:18px}.page,.view,.board-main,.board-side,.board,.cols{gap:18px}.topbar{padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}section{padding:18px 16px}}
+@media (max-width:760px){.tile strong{font-size:20px}.hello h1,.hello .greet{font-size:20px}.tile{padding:14px 15px}}
+
+/* collapsed sidebar: just the icons, centred */
+.app.collapsed .side-nav{padding:4px 10px 12px}
+.app.collapsed .side-nav a{padding:10px 0}
+.app.collapsed .side-brand{padding-left:0;padding-right:0}
+.side-toggle .ic{transition:transform .35s var(--ease)}
+.app.collapsed .side-toggle .ic{transform:scaleX(-1)}
+.side,.main{transition:width .35s var(--ease),margin-left .35s var(--ease),transform .3s var(--ease)}
+
+/* ---------- motion ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slide-in{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+@keyframes grow-up{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes grow-right{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes pop-in{from{opacity:0;transform:translateY(-6px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes badge-pop{0%{transform:scale(0)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes ring{0%,100%{transform:rotate(0)}15%{transform:rotate(14deg)}30%{transform:rotate(-12deg)}45%{transform:rotate(8deg)}60%{transform:rotate(-5deg)}75%{transform:rotate(2deg)}}
+@keyframes drift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(-2%,1.5%,0) scale(1.05)}100%{transform:translate3d(2%,-1%,0) scale(1.02)}}
+@keyframes toast-up{from{opacity:0;transform:translate(-50%,14px) scale(.97)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* living backdrop: the soft colour fields drift very slowly */
+body::before{inset:-8%;animation:drift 38s ease-in-out infinite alternate;will-change:transform}
+
+/* each page eases in, its blocks one after another */
+.page > *{animation:rise .55s var(--ease) backwards}
+.page > .view > *,.board-main > *,.board-side > *{animation:rise .6s var(--ease) backwards}
+.page > .view > :nth-child(2){animation-delay:.05s} .page > .view > :nth-child(3){animation-delay:.1s}
+.page > .view > :nth-child(4){animation-delay:.15s} .page > .view > :nth-child(5){animation-delay:.2s}
+.page > .view > :nth-child(6){animation-delay:.25s} .page > .view > :nth-child(n+7){animation-delay:.3s}
+.board-side > *{animation-delay:.18s} .board-side > :nth-child(2){animation-delay:.26s} .board-main > :nth-child(2){animation-delay:.22s}
+.tiles > .tile{animation:rise .6s var(--ease) backwards}
+.tiles > .tile:nth-child(2){animation-delay:.06s} .tiles > .tile:nth-child(3){animation-delay:.12s} .tiles > .tile:nth-child(4){animation-delay:.18s}
+.quick > *{animation:rise .5s var(--ease) backwards}
+.quick > :nth-child(2){animation-delay:.04s} .quick > :nth-child(3){animation-delay:.08s} .quick > :nth-child(4){animation-delay:.12s} .quick > :nth-child(5){animation-delay:.16s}
+ul.alerts li,ul.todos li{animation:rise .5s var(--ease) backwards}
+ul.alerts li:nth-child(2),ul.todos li:nth-child(2){animation-delay:.05s} ul.alerts li:nth-child(3),ul.todos li:nth-child(3){animation-delay:.1s} ul.alerts li:nth-child(n+4),ul.todos li:nth-child(n+4){animation-delay:.15s}
+ul.timeline li{animation:slide-in .5s var(--ease) backwards}
+ul.timeline li:nth-child(2){animation-delay:.04s} ul.timeline li:nth-child(3){animation-delay:.08s} ul.timeline li:nth-child(4){animation-delay:.12s} ul.timeline li:nth-child(5){animation-delay:.16s} ul.timeline li:nth-child(n+6){animation-delay:.2s}
+
+/* charts and bars grow into place */
+.plot .bar .stack{transform-origin:bottom;animation:grow-up .8s var(--ease) both}
+.plot .bar:nth-child(3) .stack{animation-delay:.03s} .plot .bar:nth-child(4) .stack{animation-delay:.06s} .plot .bar:nth-child(5) .stack{animation-delay:.09s}
+.plot .bar:nth-child(6) .stack{animation-delay:.12s} .plot .bar:nth-child(7) .stack{animation-delay:.15s} .plot .bar:nth-child(8) .stack{animation-delay:.18s}
+.plot .bar:nth-child(9) .stack{animation-delay:.21s} .plot .bar:nth-child(10) .stack{animation-delay:.24s} .plot .bar:nth-child(11) .stack{animation-delay:.27s}
+.plot .bar:nth-child(12) .stack{animation-delay:.3s} .plot .bar:nth-child(13) .stack{animation-delay:.33s}
+ul.barlist .track i,.progress i{transform-origin:left;animation:grow-right 1s var(--ease) .15s both}
+
+/* hover and press: gentle lift, quick spring back */
+.tile,.quickbtn,button,a.btnlink,.files li,ul.alerts li{transition:transform .25s var(--ease),box-shadow .25s var(--ease),background .2s,border-color .2s}
+@media (hover:hover){
+  .tile:hover{transform:translateY(-3px);box-shadow:var(--hi),0 16px 36px -14px rgba(20,28,45,.28)}
+  .quickbtn:hover{transform:translateY(-2px)}
+  .quickbtn:hover .ic{transform:scale(1.12) rotate(-6deg)}
+  ul.alerts li:hover{transform:translateX(3px)}
+  tr.clickable:hover td{background:rgba(127,140,170,.06)}
+  .side-nav a:hover .ic{transform:translateX(2px)}
+  .iconbtn:hover .ic{transform:scale(1.08)}
+}
+.quickbtn .ic,.side-nav a .ic,.iconbtn .ic{transition:transform .3s var(--spring)}
+button:active,a.btnlink:active,.quickbtn:active{transform:scale(.97)}
+.side-nav a{transition:background .25s var(--ease),color .2s,box-shadow .25s}
+.side-nav a[aria-current="page"]{animation:fade .3s var(--ease)}
+
+/* menus, dialogs and messages */
+.panel-pop{transform-origin:top right;animation:pop-in .28s var(--spring) backwards}
+.results{transform-origin:top left}
+dialog[open]{animation:pop-in .32s var(--spring)}
+dialog[open]::backdrop{animation:fade .25s ease}
+.toast.show{animation:toast-up .35s var(--spring) backwards}
+.badge{animation:badge-pop .45s var(--spring) .3s backwards}
+.iconbtn:has(.badge) .ic{transform-origin:top center;animation:ring 1s ease .9s 1}
+.app.drawer-open .side-nav a{animation:slide-in .4s var(--ease) backwards}
+.notice{animation:rise .45s var(--spring) backwards}
+
+/* when someone asks for less motion, keep everything still */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after,::backdrop{animation:none!important;transition:none!important}
+  body::before{inset:0}
+}

@@ -22,7 +22,7 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - Projects: `src/lib/projects.ts` `projectCost` = payments with `project_id` + paid payroll lines with `projectId` (copied from `staff.project_id` when a sheet is built).
 - New Supabase projects don't grant table access to API roles: every new table needs `grant select, insert, update, delete … to authenticated` in `schema.sql`.
 - `supabase/schema.sql` tables, RLS, realtime publication (idempotent, safe to re-run); `supabase/seed.sql` starting data
-- `src/index.css` minimal "liquid glass" theme (last section overrides the base): frosted translucent panels with a light edge over a quiet tinted backdrop, floating glass sidebar, system font, compact type (14px body); solid fallbacks when blur or transparency is off; phone layout below 900px, fields stay 16px on touch screens
+- `src/index.css` minimal "liquid glass" theme (last section overrides the base): frosted translucent panels with a light edge over a quiet tinted backdrop, floating glass sidebar, system font, compact type (14px body); solid fallbacks when blur or transparency is off; phone layout below 900px, fields stay 16px on touch screens. Motion section at the end: page/block entrance (keyframes use `backwards` fill so hover transforms still work), growing charts, drifting backdrop, spring pop-ins; `Tile` numbers count up (`CountUp` in ui.tsx); everything off under prefers-reduced-motion. Sidebar collapses to icons from the top-bar button or `[`
 
 ## Business rules to keep
 - Currency MVR. Months are `YYYY-MM` strings. Rent and most bills are due on the 10th.

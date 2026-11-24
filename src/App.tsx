@@ -57,7 +57,7 @@ function Main({ email }: { email: string }) {
   }, [])
 
   return (
-    <Shell view={view} email={email} month={k} setMonth={setK}>
+    <Shell view={view} pageKey={`${view}/${itemId && itemId !== 'new' && itemId !== 'expense' ? itemId : ''}`} email={email} month={k} setMonth={setK}>
       {d.error && <div className="banner">Couldn’t load data: {d.error}</div>}
       {d.loaded && !d.me && <div className="banner">Your account is signed in but has no access yet. Ask a Maavel admin to add you.</div>}
       {d.me && !d.canEdit && <div className="banner">You have view-only access. Ask an admin if you need to make changes.</div>}

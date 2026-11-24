@@ -26,8 +26,8 @@ const ALL = NAV.flatMap(g => g.items)
 const MOBILE: View[] = ['home', 'month', 'staff', 'projects']
 const labelOf = (v: View) => ALL.find(i => i.id === v)?.label ?? ''
 
-export default function Shell({ view, email, month, setMonth, children }: {
-  view: View; email: string; month: string; setMonth: (k: string) => void; children: ReactNode
+export default function Shell({ view, pageKey, email, month, setMonth, children }: {
+  view: View; pageKey: string; email: string; month: string; setMonth: (k: string) => void; children: ReactNode
 }) {
   const d = useData()
   const [collapsed, setCollapsed] = useState(() => pref('sidebar-collapsed', false))
@@ -51,6 +51,15 @@ export default function Shell({ view, email, month, setMonth, children }: {
   }, [drawer])
 
   const toggle = () => setCollapsed(c => { setPref('sidebar-collapsed', !c); return !c })
+  // "[" collapses / expands the sidebar, like many desktop apps.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement
+      if (e.key === '[' && !e.metaKey && !e.ctrlKey && !/INPUT|TEXTAREA|SELECT/.test(t.tagName)) setCollapsed(c => { setPref('sidebar-collapsed', !c); return !c })
+    }
+    addEventListener('keydown', key)
+    return () => removeEventListener('keydown', key)
+  }, [])
   const name = d.me?.full_name || email
 
   return (
@@ -81,9 +90,6 @@ export default function Shell({ view, email, month, setMonth, children }: {
             <span className="who"><b>{name}</b><small>{d.me ? d.me.role : 'no access'}</small></span>
             <button className="iconbtn" aria-label="Sign out" title="Sign out" onClick={() => supabase.auth.signOut()}><Icon name="logout" size={18} /></button>
           </div>
-          <button className="side-collapse only-desk" onClick={toggle} aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} title={collapsed ? 'Expand menu' : 'Collapse menu'}>
-            <Icon name={collapsed ? 'expand' : 'collapse'} size={18} /><span>Collapse</span>
-          </button>
         </div>
       </aside>
       <div className="scrim" onClick={() => setDrawer(false)} aria-hidden />
@@ -91,6 +97,7 @@ export default function Shell({ view, email, month, setMonth, children }: {
       <div className="main">
         <header className="topbar">
           <button className="iconbtn only-phone" aria-label="Open menu" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
+          <button className="iconbtn only-desk side-toggle" onClick={toggle} aria-pressed={collapsed} aria-label={collapsed ? 'Show menu labels' : 'Collapse menu to icons'} title={`${collapsed ? 'Expand' : 'Collapse'} menu  [`}><Icon name="sidebar" /></button>
           <h1 className="page-title">{labelOf(view)}</h1>
           {showMonth && (
             <div className="monthbar">
@@ -105,7 +112,10 @@ export default function Shell({ view, email, month, setMonth, children }: {
           <QuickTheme />
         </header>
 
-        <main className="content" id="main" tabIndex={-1} aria-label={labelOf(view)}>{children}</main>
+        <main className="content" id="main" tabIndex={-1} aria-label={labelOf(view)}>
+          {/* Keyed by page so each new page plays its entrance animation. */}
+          <div className="page" key={pageKey}>{children}</div>
+        </main>
       </div>
 
       <nav className="bottombar" aria-label="Quick menu">
