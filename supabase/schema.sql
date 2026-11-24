@@ -30,6 +30,16 @@ language sql stable security definer set search_path = public as $$
   select role from public.profiles where id = auth.uid()
 $$;
 
+-- People who signed in before this file was run get a profile too.
+-- If nobody has a profile yet, the earliest sign-in becomes admin.
+insert into public.profiles (id, email, role)
+select u.id, coalesce(u.email, ''),
+       case when not exists (select 1 from public.profiles)
+             and u.id = (select id from auth.users order by created_at limit 1)
+            then 'admin' else 'viewer' end
+from auth.users u
+on conflict (id) do nothing;
+
 -- ---------- Business data ----------
 create table if not exists public.staff (
   id text primary key default gen_random_uuid()::text,
