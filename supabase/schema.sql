@@ -210,3 +210,88 @@ grant select, insert, update, delete on
   public.payroll_months, public.estimate_items, public.company_docs, public.tasks
   to authenticated;
 grant execute on function public.my_role() to authenticated;
+
+-- ---------- Upgrade: files, staff profiles, leave, projects (added Nov 2026) ----------
+-- Self-contained and safe to re-run: paste just this section into the SQL Editor.
+
+-- Staff: e-visa number, leave entitlement, emergency contact, current site.
+alter table public.staff add column if not exists visa_no text default '';
+alter table public.staff add column if not exists annual_leave_days int not null default 30;
+alter table public.staff add column if not exists emergency_contact text default '';
+
+create table if not exists public.projects (
+  id text primary key default gen_random_uuid()::text,
+  name text not null,
+  client text default '',
+  location text default '',
+  status text not null default 'Active' check (status in ('Active','On hold','Completed')),
+  start_date date,
+  end_date date,
+  contract_value numeric,
+  budget numeric,
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+alter table public.staff    add column if not exists project_id text references public.projects(id) on delete set null;
+alter table public.payments add column if not exists project_id text references public.projects(id) on delete set null;
+
+create table if not exists public.leaves (
+  id text primary key default gen_random_uuid()::text,
+  staff_id text not null references public.staff(id) on delete cascade,
+  type text not null default 'Annual' check (type in ('Annual','Sick','Emergency','Unpaid','Other')),
+  start_date date not null,
+  end_date date not null,
+  days numeric not null default 1,
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists leaves_staff_idx on public.leaves(staff_id);
+
+-- Uploaded files: the file itself is in Storage (bucket "files"), this row describes it.
+create table if not exists public.files (
+  id text primary key default gen_random_uuid()::text,
+  owner_type text not null check (owner_type in ('staff','company_doc','project')),
+  owner_id text not null,
+  kind text not null default 'Other',
+  name text not null,
+  path text not null unique,
+  mime text default '',
+  size bigint default 0,
+  uploaded_by uuid default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists files_owner_idx on public.files(owner_type, owner_id);
+
+alter table public.projects enable row level security;
+alter table public.leaves   enable row level security;
+alter table public.files    enable row level security;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['projects','leaves','files'] loop
+    execute format('drop policy if exists "%1$s read" on public.%1$I', t);
+    execute format('create policy "%1$s read" on public.%1$I for select to authenticated using (public.my_role() is not null)', t);
+    execute format('drop policy if exists "%1$s write" on public.%1$I', t);
+    execute format('create policy "%1$s write" on public.%1$I for all to authenticated using (public.my_role() in (''admin'',''editor'')) with check (public.my_role() in (''admin'',''editor''))', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
+
+-- Private storage bucket for scans and photos (images and PDFs, up to 20 MB each).
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('files', 'files', false, 20971520, array['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "maavel files read"   on storage.objects;
+drop policy if exists "maavel files insert" on storage.objects;
+drop policy if exists "maavel files update" on storage.objects;
+drop policy if exists "maavel files delete" on storage.objects;
+create policy "maavel files read"   on storage.objects for select to authenticated using (bucket_id = 'files' and public.my_role() is not null);
+create policy "maavel files insert" on storage.objects for insert to authenticated with check (bucket_id = 'files' and public.my_role() in ('admin','editor'));
+create policy "maavel files update" on storage.objects for update to authenticated using (bucket_id = 'files' and public.my_role() in ('admin','editor'));
+create policy "maavel files delete" on storage.objects for delete to authenticated using (bucket_id = 'files' and public.my_role() in ('admin','editor'));

@@ -9,13 +9,17 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - PDFs: jsPDF + jspdf-autotable, loaded lazily from `src/lib/pdf.ts`.
 
 ## Where things are
-- `src/App.tsx` sign-in gate, tabs (hash routes `#home #month #staff #payroll #estimate #company #team` (`#home` = director dashboard, the default)), month picker
+- `src/App.tsx` sign-in gate, tabs (hash routes `#home #month #staff #payroll #estimate #projects #company #team` (`#home` = director dashboard, the default); `#staff/<id>` and `#projects/<id>` open a profile or project page), month picker
 - `src/data/DataContext.tsx` loads every table, subscribes to realtime, `upsert`/`remove`/`toast`
 - `src/lib/calc.ts` business rules: payroll lines and totals, bill status, document expiry alerts, overhead estimate
 - `src/lib/types.ts` row types (snake_case, same as the database), categories, payment methods
 - `src/lib/dashboard.ts` director dashboard: alerts, next-30-days list, 12-month trend, renewals (staff and company documents warn at 60 days, urgent at 30)
 - `src/views/*` one file per tab; `src/components/ui.tsx` shared Modal, Tile, Pill, Section
-- `company_docs` and `tasks` tables are optional in the app: if the SQL hasn't been run, those sections show a setup note instead of failing
+- `company_docs`, `tasks`, `files`, `leaves` and `projects` tables are optional in the app (`OPTIONAL` in DataContext): if the SQL hasn't been run, those sections show a setup note instead of failing. New staff/payment columns are only written when `projects` exists.
+- Files: private Storage bucket `files`, path `owner_type/owner_id/uuid-name`, a row in `files` per upload. `src/lib/files.ts` (upload with image shrinking, signed URLs, delete), `src/components/Files.tsx` (list/upload UI, `Photo`). Deleting a staff member, company doc or project also deletes its files.
+- Logins: `supabase/functions/admin-users` Edge Function (create/set_password/remove, admin only), called from `src/lib/admin.ts` on the Team tab. Deployed by pasting into the Supabase dashboard.
+- Projects: `src/lib/projects.ts` `projectCost` = payments with `project_id` + paid payroll lines with `projectId` (copied from `staff.project_id` when a sheet is built).
+- New Supabase projects don't grant table access to API roles: every new table needs `grant select, insert, update, delete … to authenticated` in `schema.sql`.
 - `supabase/schema.sql` tables, RLS, realtime publication (idempotent, safe to re-run); `supabase/seed.sql` starting data
 - `src/index.css` "spatial" glass theme, light and dark, mobile first
 
@@ -24,6 +28,7 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - Expat staff get MVR 1,200/month food allowance (MVR 1,000 in a part first month). Ali Waheed: MVR 3,000 food + MVR 600 phone allowance. Maavel currently pays no pension.
 - Payroll net = basic + extra − deductions + food + allowance. A month either has per-person `lines` (built in the app) or only totals (history imported from salary sheets, Jan–Oct 2026).
 - Staff who leave are set to status `Left` with a `left_date`, not deleted, so history stays.
+- Leave: 30 days annual (per staff `annual_leave_days`) and 15 days sick a year, counted per calendar year; days default to calendar days and can be edited.
 - Estimate = active staff pay and allowances + active bills (fixed amount or 3-month average) + that month's `estimate_items` + optional 3-month average of other expenses + optional contingency %.
 - Roles: admin (everything incl. roles), editor (data), viewer (read + PDFs). Enforced by RLS in `schema.sql`; the UI only mirrors it. First person to sign in becomes admin.
 

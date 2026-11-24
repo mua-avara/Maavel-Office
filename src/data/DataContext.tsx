@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Bill, CompanyDoc, EstimateItem, Payment, PayrollMonth, Profile, Staff, Task } from '../lib/types'
+import type { Bill, CompanyDoc, EstimateItem, FileRow, Leave, Payment, PayrollMonth, Profile, Project, Staff, Task } from '../lib/types'
 
 type Tables = {
   staff: Staff[]
@@ -11,12 +11,15 @@ type Tables = {
   profiles: Profile[]
   company_docs: CompanyDoc[]
   tasks: Task[]
+  files: FileRow[]
+  leaves: Leave[]
+  projects: Project[]
 }
 type TableName = keyof Tables
-const TABLES: TableName[] = ['staff', 'bills', 'payments', 'payroll_months', 'estimate_items', 'profiles', 'company_docs', 'tasks']
+const TABLES: TableName[] = ['staff', 'bills', 'payments', 'payroll_months', 'estimate_items', 'profiles', 'company_docs', 'tasks', 'files', 'leaves', 'projects']
 /** Tables added after the first release. If they are missing (SQL not run yet) the app still works without them. */
-const OPTIONAL: TableName[] = ['company_docs', 'tasks']
-const KEY: Record<TableName, string> = { staff: 'id', bills: 'id', payments: 'id', payroll_months: 'month', estimate_items: 'id', profiles: 'id', company_docs: 'id', tasks: 'id' }
+const OPTIONAL: TableName[] = ['company_docs', 'tasks', 'files', 'leaves', 'projects']
+const KEY: Record<TableName, string> = { staff: 'id', bills: 'id', payments: 'id', payroll_months: 'month', estimate_items: 'id', profiles: 'id', company_docs: 'id', tasks: 'id', files: 'id', leaves: 'id', projects: 'id' }
 
 type Ctx = Tables & {
   loaded: boolean
@@ -28,13 +31,15 @@ type Ctx = Tables & {
   isAdmin: boolean
   upsert: <T extends TableName>(table: T, row: Partial<Tables[T][number]>) => Promise<boolean>
   remove: (table: TableName, id: string) => Promise<boolean>
+  /** Reload one table now (e.g. after an upload). */
+  reload: (table: TableName) => Promise<void>
   toast: (msg: string) => void
   toastMsg: string
 }
 
 const DataContext = createContext<Ctx | null>(null)
 
-const empty: Tables = { staff: [], bills: [], payments: [], payroll_months: [], estimate_items: [], profiles: [], company_docs: [], tasks: [] }
+const empty: Tables = { staff: [], bills: [], payments: [], payroll_months: [], estimate_items: [], profiles: [], company_docs: [], tasks: [], files: [], leaves: [], projects: [] }
 
 export function DataProvider({ userId, children }: { userId: string; children: ReactNode }) {
   const [data, setData] = useState<Tables>(empty)
@@ -86,7 +91,7 @@ export function DataProvider({ userId, children }: { userId: string; children: R
     return true
   }, [load, toast])
 
-  const value: Ctx = { ...data, loaded, error, missing, me, canEdit, isAdmin, upsert, remove, toast, toastMsg }
+  const value: Ctx = { ...data, loaded, error, missing, me, canEdit, isAdmin, upsert, remove, reload: load, toast, toastMsg }
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }
 

@@ -10,9 +10,9 @@ const short = (k: string) => `${MONTHS[+k.slice(5) - 1].slice(0, 3)}`
 
 export default function DashboardView() {
   const d = useData()
-  const { staff, bills, payments, payroll_months, estimate_items, company_docs, tasks } = d
-  const x = useMemo(() => dashboard({ staff, bills, payments, payroll_months, estimate_items, company_docs, tasks }),
-    [staff, bills, payments, payroll_months, estimate_items, company_docs, tasks])
+  const { staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects } = d
+  const x = useMemo(() => dashboard({ staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects }),
+    [staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects])
   const name = d.me?.full_name?.split(' ')[0]
   const change = x.avg3 ? Math.round(((x.next.total - x.avg3) / x.avg3) * 100) : null
 
@@ -98,7 +98,7 @@ export default function DashboardView() {
             {!x.staffDocs.length ? <tr><td colSpan={2} className="empty">No staff documents expire in the next 90 days.{x.missingDates.length ? ' Some expats have no dates yet, so check the Staff tab.' : ''}</td></tr>
               : x.staffDocs.map((r, i) => (
                 <tr key={i}>
-                  <td>{r.staff.name}<span className="sub">{r.doc} · {r.staff.designation}, {r.staff.country}</span></td>
+                  <td><a className="plain" href={`#staff/${r.staff.id}`}>{r.staff.name}</a><span className="sub">{r.doc} · {r.staff.designation}, {r.staff.country}</span></td>
                   <td className="nowrap">{niceDate(r.date)}<span className="sub"><Pill kind={LEVEL_PILL[r.level]}>{r.text}</Pill></span></td>
                 </tr>
               ))}
@@ -109,13 +109,31 @@ export default function DashboardView() {
           <div><h3 className="mini">By job</h3><BarList rows={x.byRole} total={x.active.length} /></div>
           <div>
             <h3 className="mini">Last 3 months</h3>
-            {!x.joined.length && !x.left.length && !x.onLeave.length && <p className="empty">No one joined or left.</p>}
+            {!x.joined.length && !x.left.length && !x.onLeave.length && <p className="empty">No one joined, left or is on leave.</p>}
             {x.joined.map(s => <div className="kv" key={s.id}><span>{s.name}<span className="sub">{s.designation}</span></span><Pill kind="paid">Joined {niceDate(s.join_date)}</Pill></div>)}
             {x.left.map(s => <div className="kv" key={s.id}><span>{s.name}<span className="sub">{s.designation}</span></span><Pill kind="left">Left {niceDate(s.left_date)}</Pill></div>)}
-            {x.onLeave.map(s => <div className="kv" key={s.id}><span>{s.name}<span className="sub">{s.designation}</span></span><Pill kind="soon">On leave</Pill></div>)}
+            {x.onLeave.map(s => { const until = x.leaveUntil(s); return <div className="kv" key={s.id}><a className="plain" href={`#staff/${s.id}`}>{s.name}<span className="sub">{s.designation}</span></a><Pill kind="soon">{until ? `Away till ${niceDate(until)}` : 'On leave'}</Pill></div> })}
           </div>
         </div>
       </Section>
+
+      {x.projects.length > 0 && (
+        <Section title="Projects" intro={`${x.projects.length} active. Spend includes expenses tagged to the project and salaries of staff on site.`}
+          action={<a className="btnlink" href="#projects">Open projects</a>}>
+          <div className="tablewrap"><table>
+            <thead><tr><th>Project</th><th className="num">This month</th><th className="num">To date</th></tr></thead>
+            <tbody>
+              {x.projects.slice(0, 6).map(({ p, c, thisMonth }) => (
+                <tr key={p.id} className="clickable" onClick={() => { location.hash = `projects/${p.id}` }}>
+                  <td>{p.name}<span className="sub">{[p.location, c.pct != null ? `${c.pct}% of ${p.budget ? 'budget' : 'contract'}` : ''].filter(Boolean).join(' · ')}</span></td>
+                  <td className="num">{fmt0(thisMonth)}</td>
+                  <td className="num">{fmt0(c.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table></div>
+        </Section>
+      )}
 
       <Section title="Company licences and documents" intro={x.companyDocs.length
         ? `${x.companyDue.length} due for renewal in the next 90 days${x.renewalCost90 ? `, about MVR ${fmt0(x.renewalCost90)} in fees` : ''}.`

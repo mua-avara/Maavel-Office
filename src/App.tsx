@@ -11,10 +11,16 @@ import EstimateView from './views/EstimateView'
 import TeamView from './views/TeamView'
 import DashboardView from './views/DashboardView'
 import CompanyView from './views/CompanyView'
+import ProjectsView from './views/ProjectsView'
 
-const VIEWS = [['home', 'Dashboard'], ['month', 'Month'], ['staff', 'Staff'], ['payroll', 'Payroll'], ['estimate', 'Estimate'], ['company', 'Company'], ['team', 'Team']] as const
+const VIEWS = [['home', 'Dashboard'], ['month', 'Month'], ['staff', 'Staff'], ['payroll', 'Payroll'], ['estimate', 'Estimate'], ['projects', 'Projects'], ['company', 'Company'], ['team', 'Team']] as const
 type View = typeof VIEWS[number][0]
-const viewFromHash = (): View => (VIEWS.find(v => v[0] === location.hash.slice(1))?.[0] ?? 'home')
+/** "#staff/abc" → view "staff", item "abc". */
+const parseHash = (): { v: View; id: string | null } => {
+  const [v, ...rest] = location.hash.slice(1).split('/')
+  const view = VIEWS.find(x => x[0] === v)?.[0] ?? 'home'
+  return { v: view, id: rest.length ? decodeURIComponent(rest.join('/')) : null }
+}
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
@@ -34,15 +40,17 @@ export default function App() {
 
 function Shell({ email }: { email: string }) {
   const d = useData()
-  const [view, setView] = useState<View>(viewFromHash)
+  const [{ v: view, id: itemId }, setRoute] = useState(parseHash)
   const [k, setK] = useState(thisMonth)
 
   useEffect(() => {
     const on = () => {
-      const v = viewFromHash()
+      const r = parseHash()
       // The estimate is usually for next month.
-      if (v === 'estimate') setK(cur => (cur <= thisMonth ? shiftMonth(thisMonth, 1) : cur))
-      setView(cur => { if (cur !== v) window.scrollTo(0, 0); return v })
+      if (r.v === 'estimate') setK(cur => (cur <= thisMonth ? shiftMonth(thisMonth, 1) : cur))
+      setRoute(cur => { if (cur.v !== r.v || cur.id !== r.id) window.scrollTo(0, 0); return r })
+      // Keep the current tab visible in the sideways-scrolling tab bar on phones.
+      requestAnimationFrame(() => document.querySelector('nav.tabs a[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' }))
     }
     window.addEventListener('hashchange', on)
     on()
@@ -77,9 +85,10 @@ function Shell({ email }: { email: string }) {
       {!d.loaded ? <p className="note">Loading…</p> : (
         view === 'home' ? <DashboardView />
           : view === 'month' ? <MonthView k={k} />
-          : view === 'staff' ? <StaffView />
+          : view === 'staff' ? <StaffView id={itemId} />
           : view === 'payroll' ? <PayrollView k={k} />
           : view === 'estimate' ? <EstimateView k={k} />
+          : view === 'projects' ? <ProjectsView id={itemId} />
           : view === 'company' ? <CompanyView />
           : <TeamView />
       )}

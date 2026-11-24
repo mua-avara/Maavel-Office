@@ -30,6 +30,11 @@ export interface Staff {
   insurance_exp: string | null
   notes: string
   sort_order: number
+  /** Added with the Nov 2026 upgrade; missing until that SQL is run. */
+  visa_no?: string
+  annual_leave_days?: number
+  emergency_contact?: string
+  project_id?: string | null
 }
 
 export interface Bill {
@@ -53,6 +58,7 @@ export interface Payment {
   date: string
   method: string
   ref: string
+  project_id?: string | null
 }
 
 export interface PayLine {
@@ -65,6 +71,8 @@ export interface PayLine {
   allowance: number
   extra: number
   deduction: number
+  /** Site the person worked on when the sheet was built. */
+  projectId?: string | null
 }
 
 export interface PayrollMonth {
@@ -113,6 +121,53 @@ export interface Task {
   created_at?: string
 }
 
+export type OwnerType = 'staff' | 'company_doc' | 'project'
+
+export interface FileRow {
+  id: string
+  owner_type: OwnerType
+  owner_id: string
+  kind: string
+  name: string
+  path: string
+  mime: string
+  size: number
+  uploaded_by: string | null
+  created_at: string
+}
+
+export const STAFF_FILE_KINDS = ['Passport photo', 'Passport copy', 'E-visa', 'Work permit', 'Medical', 'Insurance', 'Contract', 'Other'] as const
+export const COMPANY_FILE_KINDS = ['Certificate / licence', 'Receipt', 'Letter', 'Other'] as const
+export const PROJECT_FILE_KINDS = ['Contract', 'Drawing', 'Quotation', 'Invoice', 'Photo', 'Other'] as const
+
+export const LEAVE_TYPES = ['Annual', 'Sick', 'Emergency', 'Unpaid', 'Other'] as const
+export type LeaveType = typeof LEAVE_TYPES[number]
+
+export interface Leave {
+  id: string
+  staff_id: string
+  type: LeaveType
+  start_date: string
+  end_date: string
+  days: number
+  notes: string
+}
+
+export type ProjectStatus = 'Active' | 'On hold' | 'Completed'
+
+export interface Project {
+  id: string
+  name: string
+  client: string
+  location: string
+  status: ProjectStatus
+  start_date: string | null
+  end_date: string | null
+  contract_value: number | null
+  budget: number | null
+  notes: string
+}
+
 export const DOC_CATEGORIES = [
   'Registration & licence', 'Tax (MIRA)', 'Lease & rent agreement', 'Insurance', 'Vehicle & vessel',
   'Contract', 'Bank', 'Expat quota', 'Other',
@@ -126,6 +181,6 @@ export const CATEGORIES = [
 export const METHODS = ['Bank transfer', 'Cash', 'Card', 'Cheque'] as const
 
 export const DOCS: [keyof Staff, string][] = [
-  ['passport_exp', 'Passport'], ['wp_exp', 'Work permit'], ['visa_exp', 'Work visa'],
+  ['passport_exp', 'Passport'], ['wp_exp', 'Work permit'], ['visa_exp', 'E-visa'],
   ['medical_exp', 'Medical'], ['insurance_exp', 'Insurance'],
 ]

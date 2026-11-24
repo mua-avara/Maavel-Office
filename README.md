@@ -4,11 +4,12 @@ Staff, payroll, bills and overhead estimates for **Maavel Maldives Pvt Ltd**, wi
 
 - **Dashboard**: the director's view: what needs attention, the next 30 days, a to-do list, 12-month overhead trend, staff visa and document renewals, company licences, and a director's summary PDF
 - **Month**: rent and bills (paid / due soon / overdue), other expenses, monthly expense PDF
-- **Staff**: pay, allowances, passport, work permit, visa, medical and insurance dates, with renewal alerts
+- **Staff**: a profile for each person with their passport photo, passport, e-visa, work permit, medical and insurance (expiry alerts plus uploaded scans), other documents, leave balance and records, and pay history
 - **Payroll**: built from the staff list each month, overtime and deductions, salary sheet PDF
 - **Estimate**: next month's overheads plus any extra items, as a PDF to share with the team
-- **Company**: business registration, permits, GST, leases, insurance, vehicles and quota approvals with expiry dates and renewal fees
-- **Team**: who can sign in, and whether they are an admin, editor or viewer
+- **Projects**: construction projects and sites: expenses and staff salaries per project, budget used, files, and a cost report PDF
+- **Company**: business registration, permits, GST, leases, insurance, vehicles and quota approvals with expiry dates, renewal fees and scans
+- **Team**: add logins for partners and staff, reset passwords, remove access, and choose admin, editor or viewer
 
 Built with React, TypeScript and Vite. Data and sign-in are on [Supabase](https://supabase.com) (free plan). Hosting is on [Cloudflare Pages](https://pages.cloudflare.com) (free). Everyone who signs in sees changes live.
 
@@ -42,11 +43,22 @@ Every push to `main` redeploys automatically.
 
 **Own web address (optional):** in Cloudflare Pages → your project → **Custom domains**, add for example `office.maavel.mv`. The domain itself is bought separately; connecting it is free. Then add it to the Supabase Redirect URLs too.
 
+## Logins from the Team tab (one-time setup)
+
+Admins create logins on the **Team** tab with **Add person**. This needs a small server function in Supabase, because creating logins uses the secret key, which must never be in the website:
+
+1. Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**.
+2. Name it `admin-users`, replace the sample code with everything in `supabase/functions/admin-users/index.ts`, keep **Verify JWT** on, and click **Deploy**.
+
+## Files and scans
+
+Uploaded files (passport copies, e-visas, photos, licences, project drawings) are kept in a private Supabase Storage bucket called `files`, created by `schema.sql`. Only signed-in people with a role can open them, through links that expire after 5 minutes; editors and admins can upload and delete. Phone photos are shrunk to about 2000 px before upload. The free plan includes 1 GB.
+
 ## 3. Day to day
 
 - **Signing in:** enter your email and leave the password blank to get a sign-in link, or set a password on the **Team** tab and use that.
 - **Access levels:** *Admin* can change everything including who has access. *Editor* can record payments, run payroll and edit staff. *Viewer* can only look and download PDFs.
-- **Backups:** the Supabase free plan has no automatic backups. Once a month, go to **Table Editor**, open each table and use **Export → CSV**, or ask a developer to schedule a `pg_dump`.
+- **Backups:** the Supabase free plan has no automatic backups. Once a month, go to **Table Editor**, open each table and use **Export → CSV**, or ask a developer to schedule a `pg_dump`. Uploaded files are in **Storage → files** and can be downloaded from there.
 - **Inactivity:** a free Supabase project pauses if nobody uses it for a week. Your data is kept; open the Supabase dashboard and click **Restore**.
 
 ## Running it on a computer (developers)
@@ -67,7 +79,7 @@ src/
   data/DataContext.tsx loads tables, live updates, save/delete
   lib/calc.ts          payroll, bill status, estimate, document alerts
   lib/pdf.ts           expense, salary sheet and estimate PDFs
-  views/               Month, Staff, Payroll, Estimate, Team
+  views/               Dashboard, Month, Staff (+ StaffProfile), Payroll, Estimate, Projects, Company, Team
 supabase/
   schema.sql           tables, row-level security, live updates
   seed.sql             starting data (Nov 2026)

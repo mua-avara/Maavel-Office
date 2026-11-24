@@ -1,5 +1,5 @@
-import { DOCS, type Bill, type EstimateItem, type PayLine, type Payment, type PayrollMonth, type Staff } from './types'
-import { daysFromToday, lastDay, monthEnd, num, pad, shiftMonth, thisMonth } from './format'
+import { DOCS, type Bill, type EstimateItem, type Leave, type PayLine, type Payment, type PayrollMonth, type Staff } from './types'
+import { daysFromToday, lastDay, monthEnd, num, pad, parseDate, shiftMonth, thisMonth, todayStr } from './format'
 
 /* ---------- staff documents ---------- */
 export type DocState = { key: 'paid' | 'soon' | 'overdue' | 'upcoming'; text: string; need: boolean; hasDates: boolean }
@@ -38,6 +38,7 @@ export const linesFromStaff = (staff: Staff[], k: string): PayLine[] =>
   staffForMonth(staff, k).map(s => ({
     staffId: s.id, name: s.name, designation: s.designation, country: s.country,
     basic: num(s.basic), food: num(s.food), allowance: num(s.allowance), extra: 0, deduction: 0,
+    projectId: s.project_id ?? null,
   }))
 
 export const lineSalary = (l: PayLine) => num(l.basic) + num(l.extra) - num(l.deduction)
@@ -131,3 +132,24 @@ export function estimate(k: string, staff: Staff[], bills: Bill[], payments: Pay
 }
 export type Estimate = ReturnType<typeof estimate>
 export type MonthSummary = ReturnType<typeof monthSummary>
+
+/* ---------- leave ---------- */
+/** Maldives Employment Act: 30 days annual leave, 15 days sick leave a year. */
+export const SICK_DAYS = 15
+
+/** Calendar days from start to end, both included. */
+export function leaveDays(start: string, end: string) {
+  if (!start || !end || end < start) return 0
+  return Math.round((parseDate(end).getTime() - parseDate(start).getTime()) / 864e5) + 1
+}
+
+export function leaveSummary(s: Staff, leaves: Leave[], year: string) {
+  const mine = leaves.filter(l => l.staff_id === s.id && l.start_date.startsWith(year))
+  const used = (t: string) => mine.filter(l => l.type === t).reduce((a, l) => a + num(l.days), 0)
+  const entitled = s.annual_leave_days ?? 30
+  const annual = used('Annual')
+  return { entitled, annual, annualLeft: entitled - annual, sick: used('Sick'), sickLeft: SICK_DAYS - used('Sick'), other: mine.filter(l => l.type !== 'Annual' && l.type !== 'Sick').reduce((a, l) => a + num(l.days), 0) }
+}
+
+/** Leave records that cover a given day (default today). */
+export const onLeaveOn = (leaves: Leave[], day = todayStr) => leaves.filter(l => l.start_date <= day && l.end_date >= day)

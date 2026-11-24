@@ -4,11 +4,14 @@ import { byOrder, docState, isActive, isLocal } from '../lib/calc'
 import { fmt0, niceDate, todayStr } from '../lib/format'
 import type { Staff, StaffStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
+import { removeAllFiles } from '../lib/files'
+import StaffProfile from './StaffProfile'
 
 type Filter = 'Active' | 'docs' | 'Left' | 'all'
 
-export default function StaffView() {
+export default function StaffView({ id }: { id: string | null }) {
   const d = useData()
+  const person = id ? d.staff.find(s => s.id === id) : null
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('Active')
   const [edit, setEdit] = useState<Staff | 'new' | null>(null)
@@ -28,6 +31,11 @@ export default function StaffView() {
     return l.sort(byOrder)
   }, [d.staff, filter, q])
 
+  if (id) return person ? <StaffProfile s={person} /> : <div className="view"><Section title="Not found"><p className="note">This person isn’t in the staff list any more. <a href="#staff">Back to staff</a></p></Section></div>
+
+  const open = (s: Staff) => { location.hash = `staff/${s.id}` }
+  const files = (s: Staff) => d.files.filter(f => f.owner_type === 'staff' && f.owner_id === s.id).length
+
   return (
     <div className="view">
       <div className="tiles">
@@ -36,7 +44,7 @@ export default function StaffView() {
         <Tile label="Monthly allowances" value={fmt0(active.reduce((a, s) => a + Number(s.food) + Number(s.allowance), 0))} sub="Food, phone and other" />
         <Tile label="Documents to renew" value={needDocs} sub={noDates ? `${noDates} expats have no dates yet` : 'Expired or due within 60 days'} total />
       </div>
-      <Section title="Staff" intro="Tap a person to update their pay, passport, work permit, visa, medical or insurance dates."
+      <Section title="Staff" intro="Tap a person to see their profile: documents and scans, pay history and leave."
         action={<button className="primary" disabled={!d.canEdit} onClick={() => setEdit('new')}>Add staff</button>}>
         <div className="toolbar">
           <Field label="Search"><input value={q} placeholder="Name, job or passport no." onChange={e => setQ(e.target.value)} /></Field>
@@ -50,8 +58,8 @@ export default function StaffView() {
             {!list.length ? <Empty cols={5}>Nobody matches.</Empty> : list.map(s => {
               const ds = docState(s)
               return (
-                <tr key={s.id} className="clickable" onClick={() => setEdit(s)}>
-                  <td className="name"><button className="link plain" onClick={e => { e.stopPropagation(); setEdit(s) }}>{s.name}</button><span className="sub">{s.designation}{s.status === 'On leave' ? ' · on leave' : ''}</span></td>
+                <tr key={s.id} className="clickable" onClick={() => open(s)}>
+                  <td className="name"><a className="link plain" href={`#staff/${s.id}`} onClick={e => e.stopPropagation()}>{s.name}</a><span className="sub">{[s.designation, s.status === 'On leave' ? 'on leave' : '', files(s) ? `${files(s)} file${files(s) === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}</span></td>
                   <td>{!isActive(s) ? <Pill kind="left">Left{s.left_date ? ` ${niceDate(s.left_date)}` : ''}</Pill> : isLocal(s) && !ds.hasDates ? <span className="sub">–</span> : <Pill kind={ds.key}>{ds.text}</Pill>}</td>
                   <td className="num">{fmt0(s.basic)}</td>
                   <td className="num hide-sm">{fmt0(Number(s.food) + Number(s.allowance))}</td>
@@ -67,17 +75,18 @@ export default function StaffView() {
   )
 }
 
-const blank = { name: '', designation: '', country: '', status: 'Active' as StaffStatus, basic: '', food: '1200', allowance: '0', join_date: '', left_date: '', phone: '', passport_no: '', passport_exp: '', wp_no: '', wp_exp: '', visa_exp: '', medical_exp: '', insurance_exp: '', notes: '' }
+const blank = { name: '', designation: '', country: '', status: 'Active' as StaffStatus, basic: '', food: '1200', allowance: '0', join_date: '', left_date: '', phone: '', passport_no: '', passport_exp: '', wp_no: '', wp_exp: '', visa_no: '', visa_exp: '', medical_exp: '', insurance_exp: '', notes: '', emergency_contact: '', annual_leave_days: '30', project_id: '' }
 type Form = typeof blank
 
-function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose: () => void }) {
+export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose: () => void }) {
   const d = useData()
+  const upgraded = !d.missing.includes('projects')
   const s = staff && staff !== 'new' ? staff : null
   const [f, setF] = useState<Form>(blank)
   const [key, setKey] = useState<typeof staff>(null)
   if (staff !== key) {
     setKey(staff)
-    if (staff) setF(s ? (Object.fromEntries(Object.keys(blank).map(k => [k, s[k as keyof Staff] == null ? '' : String(s[k as keyof Staff])])) as Form) : blank)
+    if (staff) setF(s ? ({ ...blank, ...Object.fromEntries(Object.keys(blank).filter(k => s[k as keyof Staff] != null).map(k => [k, String(s[k as keyof Staff])])) } as Form) : blank)
   }
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
   const date = (v: string) => (v ? v : null)
@@ -90,6 +99,8 @@ function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose:
       join_date: date(f.join_date), left_date: f.status === 'Left' ? (f.left_date || todayStr) : date(f.left_date),
       phone: f.phone.trim(), passport_no: f.passport_no.trim(), passport_exp: date(f.passport_exp), wp_no: f.wp_no.trim(),
       wp_exp: date(f.wp_exp), visa_exp: date(f.visa_exp), medical_exp: date(f.medical_exp), insurance_exp: date(f.insurance_exp), notes: f.notes.trim(),
+      // Columns from the Nov 2026 upgrade, only once that SQL has been run.
+      ...(upgraded ? { visa_no: f.visa_no.trim(), emergency_contact: f.emergency_contact.trim(), annual_leave_days: Number(f.annual_leave_days) || 0, project_id: f.project_id || null } : {}),
     }
     if (s) row.id = s.id
     else row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1
@@ -98,7 +109,7 @@ function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose:
 
   return (
     <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={onClose} onSubmit={save}
-      footer={s ? <ConfirmDelete onConfirm={async () => { if (await d.remove('staff', s.id)) { onClose(); d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
+      footer={s ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'staff', s.id); if (await d.remove('staff', s.id)) { onClose(); d.reload('files'); location.hash = 'staff'; d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
       <fieldset disabled={!d.canEdit}>
         <div className="grid2">
           <Field label="Full name"><input required value={f.name} onChange={set('name')} /></Field>
@@ -111,6 +122,14 @@ function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose:
           <Field label="Phone"><input inputMode="tel" value={f.phone} onChange={set('phone')} /></Field>
           <Field label="Joined"><input type="date" value={f.join_date} onChange={set('join_date')} /></Field>
           <Field label="Left on"><input type="date" value={f.left_date} onChange={set('left_date')} /></Field>
+          {upgraded && <>
+            <Field label="Site / project"><select value={f.project_id} onChange={set('project_id')}>
+              <option value="">Not assigned (office)</option>
+              {d.projects.filter(p => p.status !== 'Completed' || p.id === f.project_id).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select></Field>
+            <Field label="Annual leave (days a year)"><input type="number" min="0" inputMode="numeric" value={f.annual_leave_days} onChange={set('annual_leave_days')} /></Field>
+            <Field label="Emergency contact" wide><input value={f.emergency_contact} placeholder="Name, relation, phone" onChange={set('emergency_contact')} /></Field>
+          </>}
         </div>
         <fieldset className="box"><legend>Passport and permits</legend>
           <div className="grid2">
@@ -118,12 +137,14 @@ function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose:
             <Field label="Passport expiry"><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
             <Field label="Work permit no."><input value={f.wp_no} onChange={set('wp_no')} /></Field>
             <Field label="Work permit expiry"><input type="date" value={f.wp_exp} onChange={set('wp_exp')} /></Field>
-            <Field label="Work visa expiry"><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
+            {upgraded && <Field label="E-visa no."><input value={f.visa_no} onChange={set('visa_no')} /></Field>}
+            <Field label="E-visa expiry"><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
             <Field label="Medical expiry"><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
             <Field label="Insurance expiry"><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
           </div>
         </fieldset>
         <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
+        {!s && <p className="note">After saving, open the person to upload their passport, e-visa and other scans.</p>}
       </fieldset>
       <datalist id="countries"><option>Maldives</option><option>Bangladesh</option><option>India</option><option>Sri Lanka</option><option>Nepal</option></datalist>
     </Modal>

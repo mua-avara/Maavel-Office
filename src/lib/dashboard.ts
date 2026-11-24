@@ -1,6 +1,7 @@
-import { DOCS, type Bill, type CompanyDoc, type EstimateItem, type Payment, type PayrollMonth, type Staff, type Task } from './types'
+import { DOCS, type Bill, type CompanyDoc, type EstimateItem, type Leave, type Payment, type PayrollMonth, type Project, type Staff, type Task } from './types'
 import { daysFromToday, monthName, num, shiftMonth, thisMonth, todayStr } from './format'
-import { estimate, isActive, isLocal, monthSummary, payrollInfo } from './calc'
+import { estimate, isActive, isLocal, monthSummary, onLeaveOn, payrollInfo } from './calc'
+import { projectCost, projectSpendIn } from './projects'
 
 /** How urgent something is: bad = act now, warn = soon, ok = fine. */
 export type Level = 'bad' | 'warn' | 'ok'
@@ -19,11 +20,12 @@ export function expiryLevel(date: string | null): { level: Level | 'none'; days:
 export const LEVEL_PILL: Record<Level | 'none', string> = { bad: 'overdue', warn: 'soon', ok: 'paid', none: 'upcoming' }
 
 export type Alert = { level: Level; title: string; detail: string; href: string; date?: string }
-export type Upcoming = { date: string; kind: 'Bill' | 'Staff document' | 'Company document' | 'To-do'; title: string; detail: string; href: string; amount?: number }
+export type Upcoming = { date: string; kind: 'Bill' | 'Staff document' | 'Company document' | 'To-do' | 'Leave'; title: string; detail: string; href: string; amount?: number }
 
 type Input = {
   staff: Staff[]; bills: Bill[]; payments: Payment[]; payroll_months: PayrollMonth[]
   estimate_items: EstimateItem[]; company_docs: CompanyDoc[]; tasks: Task[]
+  leaves: Leave[]; projects: Project[]
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -74,7 +76,10 @@ export function dashboard(d: Input) {
     .sort((a, b) => b[1] - a[1])
   const byRole = Object.entries(active.reduce<Record<string, number>>((a, s) => { const c = s.designation.trim() || 'Not set'; a[c] = (a[c] || 0) + 1; return a }, {}))
     .sort((a, b) => b[1] - a[1])
-  const onLeave = active.filter(s => s.status === 'On leave')
+  // Away today: from leave records, plus anyone whose status is set to "On leave".
+  const awayIds = new Set(onLeaveOn(d.leaves).map(l => l.staff_id))
+  const onLeave = active.filter(s => s.status === 'On leave' || awayIds.has(s.id))
+  const leaveUntil = (s: Staff) => onLeaveOn(d.leaves).filter(l => l.staff_id === s.id).map(l => l.end_date).sort().pop() ?? null
   const since90 = shiftMonth(k, -3) + '-01'
   const joined = active.filter(s => s.join_date && s.join_date >= since90).sort((a, b) => (b.join_date ?? '').localeCompare(a.join_date ?? ''))
   const left = d.staff.filter(s => !isActive(s) && s.left_date && s.left_date >= since90).sort((a, b) => (b.left_date ?? '').localeCompare(a.left_date ?? ''))
@@ -95,6 +100,12 @@ export function dashboard(d: Input) {
     .sort((a, b) => (a.doc.expiry_date ?? '9999').localeCompare(b.doc.expiry_date ?? '9999') || a.doc.name.localeCompare(b.doc.name))
   const companyDue = companyDocs.filter(c => c.days != null && c.days <= 90)
   const renewalCost90 = companyDue.reduce((a, c) => a + num(c.doc.renewal_cost), 0)
+
+  /* ---- projects ---- */
+  const projects = d.projects.filter(p => p.status === 'Active').map(p => {
+    const c = projectCost(p, d.payments, d.payroll_months)
+    return { p, c, thisMonth: projectSpendIn(c, k) }
+  }).sort((a, b) => b.c.total - a.c.total)
 
   /* ---- to-dos ---- */
   const open = d.tasks.filter(t => !t.done).sort(taskOrder)
@@ -130,14 +141,18 @@ export function dashboard(d: Input) {
   ;[cur, monthSummary(nextK, d.bills, d.payments, pm(nextK), d.staff)].forEach(m => m.unpaid.forEach(r => {
     if (r.due < until && in30(r.due)) upcoming.push({ date: r.due, kind: 'Bill', title: r.bill.name, detail: r.bill.category, href: '#month', amount: r.bill.amount ?? undefined })
   }))
-  staffDocs.filter(x => x.date && in30(x.date)).forEach(x => upcoming.push({ date: x.date!, kind: 'Staff document', title: `${x.staff.name}: ${x.doc}`, detail: x.staff.designation, href: '#staff' }))
+  staffDocs.filter(x => x.date && in30(x.date)).forEach(x => upcoming.push({ date: x.date!, kind: 'Staff document', title: `${x.staff.name}: ${x.doc}`, detail: x.staff.designation, href: `#staff/${x.staff.id}` }))
+  d.leaves.filter(l => l.start_date > todayStr && in30(l.start_date)).forEach(l => {
+    const p = d.staff.find(s => s.id === l.staff_id)
+    if (p && isActive(p)) upcoming.push({ date: l.start_date, kind: 'Leave', title: `${p.name}: ${l.type.toLowerCase()} leave`, detail: `${l.days} day${l.days === 1 ? '' : 's'}`, href: `#staff/${p.id}` })
+  })
   companyDocs.filter(c => c.doc.expiry_date && in30(c.doc.expiry_date)).forEach(c => upcoming.push({ date: c.doc.expiry_date!, kind: 'Company document', title: c.doc.name, detail: c.doc.issuer || c.doc.category, href: '#company', amount: c.doc.renewal_cost ?? undefined }))
   open.filter(t => t.due_date && in30(t.due_date)).forEach(t => upcoming.push({ date: t.due_date!, kind: 'To-do', title: t.title, detail: t.owner ? `For ${t.owner}` : `${t.priority} priority`, href: '#home' }))
   upcoming.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind))
 
   return {
     k, prevK, nextK, cur, prev, next, trend, avg3, ytdRows, ytdTotal, year,
-    active, expats, byCountry, byRole, onLeave, joined, left, staffMonthly, staffBasic, staffDocs, missingDates,
+    active, expats, byCountry, byRole, onLeave, leaveUntil, projects, joined, left, staffMonthly, staffBasic, staffDocs, missingDates,
     companyDocs, companyDue, renewalCost90, open, overdueTasks, alerts, upcoming,
   }
 }

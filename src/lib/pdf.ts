@@ -3,7 +3,8 @@ import { autoTable, type UserOptions } from 'jspdf-autotable'
 import { fmt, fmt0, monthName, niceDate, todayStr } from './format'
 import { lineTotal, payTotals, type Estimate, type MonthSummary } from './calc'
 import type { Dashboard } from './dashboard'
-import { CATEGORIES, type PayLine, type Staff } from './types'
+import { CATEGORIES, type PayLine, type Project, type Staff } from './types'
+import type { ProjectCost } from './projects'
 
 type RGB = [number, number, number]
 const NAVY: RGB = [27, 55, 102], ORANGE: RGB = [233, 84, 31], GREY: RGB = [93, 102, 120], INK: RGB = [20, 24, 32], SOFT: RGB = [238, 241, 247]
@@ -171,4 +172,33 @@ export async function directorPdf(x: Dashboard) {
     table(p, { head: [['To-do', 'For', 'Due', 'Priority']], body: x.open.map(t => [t.title, t.owner, t.due_date ? niceDate(t.due_date) : '', t.priority]) })
   }
   finish(p, 'Prepared by', 'Managing Director', `Director's summary ${monthName(x.k)}`, `Maavel-director-summary-${x.k}.pdf`)
+}
+
+export async function projectPdf(pr: Project, c: ProjectCost, team: Staff[]) {
+  const dates = pr.start_date ? `${niceDate(pr.start_date)} – ${pr.end_date ? niceDate(pr.end_date) : 'ongoing'}` : ''
+  const p = await start(`Project cost report: ${pr.name}`,
+    [pr.client && `Client: ${pr.client}`, pr.location, dates, pr.status].filter(Boolean).join('  ·  '))
+  const body: string[][] = [['Expenses tagged to the project', fmt(c.expenses)], ['Salaries and allowances of staff on site', fmt(c.staff)]]
+  const foot: string[][] = [['Total spent to date', `MVR ${fmt(c.total)}`]]
+  if (pr.contract_value) body.push(['Contract value', fmt(pr.contract_value)])
+  if (pr.budget) body.push(['Cost budget', fmt(pr.budget)])
+  if (c.limit) foot.push([`Left of ${pr.budget ? 'budget' : 'contract value'} (${c.pct}% used)`, `MVR ${fmt(c.limit - c.total)}`])
+  table(p, { head: [['Summary', 'MVR']], body, foot, footStyles: footSoft, columnStyles: { 1: { halign: 'right' } } })
+  if (c.months.length) {
+    section(p, 'Spend by month')
+    table(p, { head: [['Month', 'Expenses', 'Salaries', 'Total']], body: c.months.map(([k, e, s]) => [monthName(k), fmt0(e), fmt0(s), fmt0(e + s)]),
+      theme: 'striped', alternateRowStyles: { fillColor: [246, 247, 250] }, columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right', fontStyle: 'bold' } } })
+  }
+  if (c.byCategory.length) {
+    section(p, 'Expenses by category')
+    table(p, { head: [['Category', 'MVR']], body: c.byCategory.map(([k, v]) => [k, fmt(v)]), columnStyles: { 1: { halign: 'right' } } })
+  }
+  section(p, 'Expenses')
+  table(p, { head: [['Date', 'Item', 'Category', 'Ref.', 'MVR']], body: c.payments.length ? [...c.payments].reverse().map(x => [niceDate(x.date), x.description, x.category, x.ref, fmt(x.amount)]) : [['', 'No expenses tagged yet', '', '', '']],
+    theme: 'striped', alternateRowStyles: { fillColor: [246, 247, 250] }, columnStyles: { 0: { cellWidth: 24 }, 4: { halign: 'right', cellWidth: 26 } } })
+  if (team.length) {
+    section(p, 'Staff on this site now')
+    table(p, { head: [['Name', 'Job', 'Monthly cost (MVR)']], body: team.map(s => [s.name, s.designation, fmt0(Number(s.basic) + Number(s.food) + Number(s.allowance))]), columnStyles: { 2: { halign: 'right' } } })
+  }
+  finish(p, 'Prepared by', 'Managing Director', `Project ${pr.name}`, `Maavel-project-${pr.name.replace(/[^\w]+/g, '-')}.pdf`)
 }

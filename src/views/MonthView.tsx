@@ -56,7 +56,7 @@ export default function MonthView({ k }: { k: string }) {
             {!c.other.length ? <Empty cols={6}>No other expenses this month.</Empty> : c.other.map(p => (
               <tr key={p.id}>
                 <td className="nowrap">{niceDate(p.date)}</td>
-                <td>{p.description}{p.ref && <span className="sub">Ref {p.ref}</span>}</td>
+                <td>{p.description}{(p.ref || p.project_id) && <span className="sub">{[p.ref && `Ref ${p.ref}`, d.projects.find(x => x.id === p.project_id)?.name].filter(Boolean).join(' · ')}</span>}</td>
                 <td className="hide-sm cat">{p.category}</td><td className="hide-sm cat">{p.method}</td>
                 <td className="num">{fmt(p.amount)}</td>
                 <td className="num"><button className="small" disabled={!d.canEdit} onClick={() => setPay({ payment: p })}>Edit</button></td>
@@ -109,15 +109,17 @@ function PaymentDialog({ k, ctx, onClose }: { k: string; ctx: PayCtx; onClose: (
   const d = useData()
   const p = ctx?.payment, b = ctx?.bill
   const isBill = Boolean(b || p?.bill_id)
-  const [f, setF] = useState({ description: '', category: 'Other', date: '', amount: '', method: 'Bank transfer', ref: '' })
+  const [f, setF] = useState({ description: '', category: 'Other', date: '', amount: '', method: 'Bank transfer', ref: '', project_id: '' })
   const [key, setKey] = useState<PayCtx>(null)
+  const projectsReady = !d.missing.includes('projects')
+  const openProjects = d.projects.filter(x => x.status !== 'Completed' || x.id === f.project_id)
   if (ctx !== key) {
     setKey(ctx)
     if (ctx) setF({
       description: p?.description ?? '', category: p?.category ?? 'Other',
       date: p?.date ?? (todayStr.startsWith(k) ? todayStr : ctx.due ?? `${k}-01`),
       amount: p ? String(p.amount) : b?.amount != null ? String(b.amount) : '',
-      method: p?.method || 'Bank transfer', ref: p?.ref ?? '',
+      method: p?.method || 'Bank transfer', ref: p?.ref ?? '', project_id: p?.project_id ?? '',
     })
   }
   async function save() {
@@ -126,6 +128,7 @@ function PaymentDialog({ k, ctx, onClose }: { k: string; ctx: PayCtx; onClose: (
     if (!isBill && !f.description.trim()) { d.toast('Enter what the expense was for.'); return }
     const row: Partial<Payment> = {
       month: f.date.slice(0, 7), date: f.date, amount, method: f.method, ref: f.ref.trim(),
+      ...(projectsReady ? { project_id: f.project_id || null } : {}),
       ...(b ? { bill_id: b.id, description: b.name, category: b.category }
         : p?.bill_id ? { bill_id: p.bill_id, description: p.description, category: p.category }
         : { bill_id: null, description: f.description.trim(), category: f.category }),
@@ -146,6 +149,12 @@ function PaymentDialog({ k, ctx, onClose }: { k: string; ctx: PayCtx; onClose: (
         <Field label="Method"><select value={f.method} onChange={e => setF({ ...f, method: e.target.value })}>{METHODS.map(m => <option key={m}>{m}</option>)}</select></Field>
       </div>
       <Field label="Receipt / reference no."><input value={f.ref} placeholder="Optional" onChange={e => setF({ ...f, ref: e.target.value })} /></Field>
+      {projectsReady && openProjects.length > 0 && (
+        <Field label="Project / site"><select value={f.project_id} onChange={e => setF({ ...f, project_id: e.target.value })}>
+          <option value="">General overhead (no project)</option>
+          {openProjects.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select></Field>
+      )}
     </Modal>
   )
 }

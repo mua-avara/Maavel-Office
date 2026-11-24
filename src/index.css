@@ -266,3 +266,53 @@ ul.barlist .track i{display:block;height:100%;border-radius:999px;background:var
 ul.todos li > button .sub{font-weight:400}
 .hello .grow{min-width:min(100%,260px)}
 td .sub .pill{margin-top:4px}
+
+/* ---------- Upgrade (Nov 2026): profiles, files, projects, team ---------- */
+.crumbs{margin:0 0 -6px;font-size:14px}
+.crumbs a{color:var(--muted);text-decoration:none;font-weight:600}
+.crumbs a:hover{color:var(--ink)}
+.profile-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.profile-head h2{margin:0;font-size:24px}
+.profile-head p{margin:4px 0 0;color:var(--muted)}
+.profile-head .grow{flex:1;min-width:min(100%,220px)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px!important}
+a.pill{text-decoration:none}
+.avatar{width:76px;height:96px;border-radius:14px;object-fit:cover;flex:none;display:grid;place-items:center;background:var(--glass-line);color:var(--muted);font:700 26px/1 var(--display);border:1px solid var(--glass-edge)}
+dl.facts{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;margin:0}
+dl.facts dt{color:var(--muted)}
+dl.facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+ul.docrows{list-style:none;margin:0;padding:0}
+ul.docrows li{padding:10px 0;border-bottom:1px solid var(--glass-line)}
+ul.docrows li:last-child{border-bottom:none}
+.dochead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dochead .sub{flex:1;color:var(--muted);font-size:13px;min-width:120px}
+.files ul{list-style:none;margin:6px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.files li{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap}
+.files .fname{display:flex;align-items:center;gap:8px;text-align:left;min-width:0;flex:1}
+.files .fname > span:last-child{overflow-wrap:anywhere}
+.files .fname .sub{display:block;font-size:12px;color:var(--muted)}
+.files .ficon{flex:none;font:700 10px/1 var(--ui);padding:6px 5px;border-radius:6px;background:var(--glass-line);color:var(--muted)}
+.files .factions{display:flex;gap:8px;align-items:center}
+.files .fupload{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.files .fupload select{width:auto}
+.files.compact ul{margin:6px 0 0}
+.tiles.small{grid-template-columns:repeat(3,1fr);margin-bottom:12px}
+.tiles.small .tile strong{font-size:22px}
+.progress{position:relative;display:block;height:20px;border-radius:999px;background:var(--glass-line);overflow:hidden;min-width:90px}
+.progress i{position:absolute;inset:0 auto 0 0;background:var(--ok-bg)}
+.progress.near i{background:var(--warn-bg)}
+.progress.over i{background:var(--bad-bg)}
+.progress b{position:relative;display:block;text-align:center;font-size:12px;line-height:20px}
+.show-sm{display:none}
+@media (max-width:760px){.show-sm{display:inline}}
+.notice{border:1px solid var(--glass-edge);background:var(--ok-bg);border-radius:14px;padding:12px 14px;margin-bottom:12px}
+.notice p{margin:0 0 8px}
+.notice pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.5 ui-monospace,Menlo,monospace;background:var(--glass);border-radius:10px;padding:10px;margin:0 0 10px}
+.inline{display:flex;gap:8px}
+.inline input{flex:1;min-width:0}
+.small-link{display:block;font-size:12.5px;margin-top:4px;padding:0}
+a.plain{color:inherit;text-decoration:none}
+a.plain:hover{text-decoration:underline}
+.profile-head .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.profile-head{text-align:left;flex-direction:row}
+@media (max-width:480px){.profile-head .head-actions{width:100%} .profile-head .head-actions button{flex:1}}

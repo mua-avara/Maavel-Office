@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { expiryLevel, LEVEL_PILL } from '../lib/dashboard'
 import { fmt0, niceDate } from '../lib/format'
-import { DOC_CATEGORIES, type CompanyDoc } from '../lib/types'
+import { COMPANY_FILE_KINDS, DOC_CATEGORIES, type CompanyDoc } from '../lib/types'
+import { removeAllFiles } from '../lib/files'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { SetupNote } from './DashboardView'
+import Files from '../components/Files'
 
 const blank = (): CompanyDoc => ({ id: '', name: '', category: 'Registration & licence', number: '', issuer: '', issue_date: null, expiry_date: null, renewal_cost: null, notes: '' })
 
@@ -30,6 +32,8 @@ export default function CompanyView() {
       .map(c => ({ c, e: expiryLevel(c.expiry_date) }))
       .sort((a, b) => (a.c.expiry_date ?? '9999').localeCompare(b.c.expiry_date ?? '9999') || a.c.name.localeCompare(b.c.name))
   }, [d.company_docs, q])
+
+  const filesFor = (id: string) => { const n = d.files.filter(f => f.owner_type === 'company_doc' && f.owner_id === id).length; return n ? `${n} file${n === 1 ? '' : 's'}` : '' }
 
   if (d.missing.includes('company_docs')) return <div className="view"><Section title="Company licences and documents"><SetupNote /></Section></div>
 
@@ -64,7 +68,7 @@ export default function CompanyView() {
               : list.map(({ c, e }) => (
                 <tr key={c.id} className="clickable" onClick={() => setEdit(c)}>
                   <td><button className="link plain" onClick={ev => { ev.stopPropagation(); setEdit(c) }}>{c.name}</button>
-                    <span className="sub">{[c.category, c.number, c.issuer].filter(Boolean).join(' · ')}</span></td>
+                    <span className="sub">{[c.category, c.number, c.issuer, filesFor(c.id)].filter(Boolean).join(' · ')}</span></td>
                   <td className="nowrap">{c.expiry_date ? niceDate(c.expiry_date) : 'Does not expire'}</td>
                   <td>{c.expiry_date ? <Pill kind={LEVEL_PILL[e.level]}>{e.level === 'ok' ? 'OK' : e.text}</Pill> : <span className="sub">–</span>}</td>
                   <td className="num hide-sm">{c.renewal_cost ? fmt0(c.renewal_cost) : '–'}</td>
@@ -80,7 +84,7 @@ export default function CompanyView() {
       </Section>
 
       <Modal wide open={!!edit} title={edit?.id ? 'Edit document' : 'New document'} onClose={() => setEdit(null)} onSubmit={save}
-        footer={edit?.id ? <ConfirmDelete onConfirm={async () => { if (await d.remove('company_docs', edit.id)) { setEdit(null); d.toast('Deleted') } }} /> : undefined}>
+        footer={edit?.id ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'company_doc', edit.id); if (await d.remove('company_docs', edit.id)) { setEdit(null); d.reload('files'); d.toast('Deleted') } }} /> : undefined}>
         {edit && <fieldset disabled={!d.canEdit}>
           <Field label="Document"><input required value={edit.name} placeholder="e.g. Business permit" onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
           <div className="grid2">
@@ -95,6 +99,9 @@ export default function CompanyView() {
           </div>
           <Field label="Notes"><input value={edit.notes} placeholder="Where the original is kept, who renews it…" onChange={e => setEdit({ ...edit, notes: e.target.value })} /></Field>
         </fieldset>}
+        {edit && (edit.id
+          ? <fieldset className="box"><legend>Scans and copies</legend><Files ownerType="company_doc" ownerId={edit.id} kinds={COMPANY_FILE_KINDS} empty="No scans yet. Upload a photo or PDF of the certificate." /></fieldset>
+          : <p className="note">Save the document first, then open it again to upload a scan.</p>)}
       </Modal>
     </div>
   )
