@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useData } from '../data/DataContext'
 import { byOrder, isActive } from '../lib/calc'
 import { fmt, fmt0, monthName, niceDate, num, thisMonth } from '../lib/format'
@@ -15,6 +15,10 @@ export default function ProjectsView({ id }: { id: string | null }) {
   const d = useData()
   const [edit, setEdit] = useState<Project | null>(null)
   const [show, setShow] = useState<'open' | 'all'>('open')
+  // "#projects/new" (quick action on the Overview) opens the form once.
+  const [handled, setHandled] = useState<string | null>(null)
+  if (id !== handled) { setHandled(id); if (id === 'new' && d.canEdit) setEdit(blank()) }
+  useEffect(() => { if (id === 'new') history.replaceState(null, '', '#projects') }, [id])
 
   const rows = useMemo(() => d.projects.map(p => ({ p, c: projectCost(p, d.payments, d.payroll_months) })), [d.projects, d.payments, d.payroll_months])
 
@@ -54,7 +58,7 @@ export default function ProjectsView({ id }: { id: string | null }) {
     </Modal>
   )
 
-  if (id) {
+  if (id && id !== 'new') {
     const r = rows.find(x => x.p.id === id)
     if (!r) return <div className="view"><Section title="Not found"><p className="note">This project was deleted. <a href="#projects">Back to projects</a></p></Section></div>
     return <ProjectPage p={r.p} c={r.c} onEdit={() => setEdit(r.p)} dialog={dialog} />

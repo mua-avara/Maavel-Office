@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useData } from '../data/DataContext'
-import { dashboard, LEVEL_PILL, taskOrder, type Dashboard } from '../lib/dashboard'
+import { useDashboard } from '../data/useDashboard'
+import { LEVEL_PILL, taskOrder, type Dashboard } from '../lib/dashboard'
+import { Icon, type IconName } from '../components/icons'
 import { fmt0, MONTHS, monthName, niceDate, todayStr } from '../lib/format'
 import type { Priority, Task } from '../lib/types'
 import { ConfirmDelete, Field, Modal, Pill, Section, Tile } from '../components/ui'
@@ -10,59 +12,76 @@ const short = (k: string) => `${MONTHS[+k.slice(5) - 1].slice(0, 3)}`
 
 export default function DashboardView() {
   const d = useData()
-  const { staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects } = d
-  const x = useMemo(() => dashboard({ staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects }),
-    [staff, bills, payments, payroll_months, estimate_items, company_docs, tasks, leaves, projects])
+  const x = useDashboard()
   const name = d.me?.full_name?.split(' ')[0]
   const change = x.avg3 ? Math.round(((x.next.total - x.avg3) / x.avg3) * 100) : null
+  const urgent = x.alerts.filter(a => a.level === 'bad').length
 
   return (
     <div className="view">
       <div className="hello">
         <div className="grow">
           <h1>{greeting()}{name ? `, ${name}` : ''}</h1>
-          <p className="note">{niceDate(todayStr)} · {x.alerts.length ? `${x.alerts.filter(a => a.level === 'bad').length} urgent, ${x.alerts.filter(a => a.level === 'warn').length} coming up` : 'Nothing needs your attention right now'}</p>
+          <p className="note">{niceDate(todayStr)} · {x.alerts.length ? `${urgent} urgent, ${x.alerts.length - urgent} coming up` : 'Nothing needs your attention right now'}</p>
         </div>
-        <button className="accent" onClick={() => import('../lib/pdf').then(m => m.directorPdf(x))}>Download director’s report</button>
+      </div>
+
+      <div className="quick">
+        {d.canEdit && <>
+          <QuickLink href="#month/expense" icon="plus" label="Add expense" />
+          <QuickLink href="#staff/new" icon="staff" label="Add staff" />
+          <QuickLink href="#projects/new" icon="projects" label="New project" />
+          <QuickLink href="#todo" icon="check" label="Add to-do" onClick={e => { e.preventDefault(); document.getElementById('quick-todo')?.focus() }} />
+        </>}
+        <button type="button" className="quickbtn" onClick={() => import('../lib/pdf').then(m => m.directorPdf(x))}><Icon name="report" /><span>Director’s report</span></button>
       </div>
 
       <div className="tiles">
         <Tile label={`Spent in ${MONTHS[+x.k.slice(5) - 1]}`} value={fmt0(x.cur.total)} sub={x.avg3 ? `3-month average ${fmt0(x.avg3)}` : 'Paid so far, MVR'} />
         <Tile label="Still to pay this month" value={fmt0(x.cur.dueTotal)} sub={`${x.cur.unpaid.length} bill${x.cur.unpaid.length === 1 ? '' : 's'}${x.cur.payDue ? ' + payroll' : ''}`} />
         <Tile label={`${monthName(x.nextK)} estimate`} value={fmt0(x.next.total)} sub={change == null ? 'Staff, bills and running costs' : `${change >= 0 ? '+' : ''}${change}% vs 3-month average`} />
-        <Tile label="Active staff" value={x.active.length} sub={`${x.expats.length} expat · MVR ${fmt0(x.staffMonthly)}/month`} total />
+        <Tile label="Active staff" value={x.active.length} sub={`${x.expats.length} expat · ${x.onLeave.length} away today`} total />
       </div>
 
-      <div className="cols">
-        <Section title="Needs your attention" intro="Overdue payments, expiring visas and licences, and late to-dos.">
-          {!x.alerts.length ? <p className="allclear">All clear. Nothing overdue or expiring soon.</p> : (
-            <ul className="alerts">
-              {x.alerts.map((a, i) => (
-                <li key={i} className={a.level}>
-                  <a href={a.href}><b>{a.title}</b><span>{a.detail}</span></a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+      <div className="board">
+        <div className="board-main">
+          <Section title="Needs your attention" intro={x.alerts.length ? 'Overdue payments, expiring visas and licences, and late to-dos.' : undefined}>
+            {!x.alerts.length ? <p className="allclear">All clear. Nothing overdue or expiring soon.</p> : (
+              <ul className="alerts">
+                {x.alerts.map((a, i) => (
+                  <li key={i} className={a.level}>
+                    <a href={a.href}><b>{a.title}</b><span>{a.detail}</span></a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Section>
+          <Tasks />
+        </div>
 
-        <Section title="Next 30 days" intro="Bills, renewals and to-dos coming up.">
-          {!x.upcoming.length ? <p className="empty">Nothing due in the next 30 days.</p> : (
-            <ul className="timeline">
-              {x.upcoming.slice(0, 12).map((u, i) => (
-                <li key={i}>
-                  <time dateTime={u.date}><b>{+u.date.slice(8)}</b>{short(u.date.slice(0, 7))}</time>
-                  <a href={u.href}><b>{u.title}</b><span>{u.kind} · {u.detail}</span></a>
-                  {u.amount != null && <span className="amt">{fmt0(u.amount)}</span>}
-                </li>
-              ))}
-              {x.upcoming.length > 12 && <li className="more">and {x.upcoming.length - 12} more</li>}
-            </ul>
-          )}
-        </Section>
+        <div className="board-side">
+          <Section title="Next 30 days" intro="Bills, renewals, leave and to-dos.">
+            {!x.upcoming.length ? <p className="empty">Nothing due in the next 30 days.</p> : (
+              <ul className="timeline">
+                {x.upcoming.slice(0, 10).map((u, i) => (
+                  <li key={i}>
+                    <time dateTime={u.date}><b>{+u.date.slice(8)}</b>{short(u.date.slice(0, 7))}</time>
+                    <a href={u.href}><b>{u.title}</b><span>{u.kind} · {u.detail}</span></a>
+                    {u.amount != null && <span className="amt">{fmt0(u.amount)}</span>}
+                  </li>
+                ))}
+                {x.upcoming.length > 10 && <li className="more">and {x.upcoming.length - 10} more</li>}
+              </ul>
+            )}
+          </Section>
+          <Section title="Who’s away">
+            {!x.onLeave.length ? <p className="empty">Everyone is in today.</p> : x.onLeave.map(s => {
+              const until = x.leaveUntil(s)
+              return <div className="kv" key={s.id}><a className="plain" href={`#staff/${s.id}`}>{s.name}<span className="sub">{s.designation}</span></a><Pill kind="soon">{until ? `Back after ${niceDate(until)}` : 'On leave'}</Pill></div>
+            })}
+          </Section>
+        </div>
       </div>
-
-      <Tasks />
 
       <Section title="Overheads" intro={`What Maavel actually paid each month, in MVR. ${x.year} so far: MVR ${fmt0(x.ytdTotal)}.`}
         action={<a className="btnlink" href="#estimate">Open estimate</a>}>
@@ -109,18 +128,17 @@ export default function DashboardView() {
           <div><h3 className="mini">By job</h3><BarList rows={x.byRole} total={x.active.length} /></div>
           <div>
             <h3 className="mini">Last 3 months</h3>
-            {!x.joined.length && !x.left.length && !x.onLeave.length && <p className="empty">No one joined, left or is on leave.</p>}
+            {!x.joined.length && !x.left.length && <p className="empty">No one joined or left.</p>}
             {x.joined.map(s => <div className="kv" key={s.id}><span>{s.name}<span className="sub">{s.designation}</span></span><Pill kind="paid">Joined {niceDate(s.join_date)}</Pill></div>)}
             {x.left.map(s => <div className="kv" key={s.id}><span>{s.name}<span className="sub">{s.designation}</span></span><Pill kind="left">Left {niceDate(s.left_date)}</Pill></div>)}
-            {x.onLeave.map(s => { const until = x.leaveUntil(s); return <div className="kv" key={s.id}><a className="plain" href={`#staff/${s.id}`}>{s.name}<span className="sub">{s.designation}</span></a><Pill kind="soon">{until ? `Away till ${niceDate(until)}` : 'On leave'}</Pill></div> })}
           </div>
         </div>
       </Section>
 
-      {x.projects.length > 0 && (
-        <Section title="Projects" intro={`${x.projects.length} active. Spend includes expenses tagged to the project and salaries of staff on site.`}
+      <div className="cols">
+        <Section title="Projects" intro={x.projects.length ? `${x.projects.length} active. Expenses tagged to each project plus salaries of staff on site.` : undefined}
           action={<a className="btnlink" href="#projects">Open projects</a>}>
-          <div className="tablewrap"><table>
+          {!x.projects.length ? <p className="empty">No active projects. Add your sites to see cost per project.</p> : <div className="tablewrap"><table>
             <thead><tr><th>Project</th><th className="num">This month</th><th className="num">To date</th></tr></thead>
             <tbody>
               {x.projects.slice(0, 6).map(({ p, c, thisMonth }) => (
@@ -131,9 +149,8 @@ export default function DashboardView() {
                 </tr>
               ))}
             </tbody>
-          </table></div>
+          </table></div>}
         </Section>
-      )}
 
       <Section title="Company licences and documents" intro={x.companyDocs.length
         ? `${x.companyDue.length} due for renewal in the next 90 days${x.renewalCost90 ? `, about MVR ${fmt0(x.renewalCost90)} in fees` : ''}.`
@@ -154,8 +171,13 @@ export default function DashboardView() {
           </table></div>
         )}
       </Section>
+      </div>
     </div>
   )
+}
+
+function QuickLink({ href, icon, label, onClick }: { href: string; icon: IconName; label: string; onClick?: (e: MouseEvent) => void }) {
+  return <a className="quickbtn" href={href} onClick={onClick}><Icon name={icon} /><span>{label}</span></a>
 }
 
 export function SetupNote() {
@@ -251,8 +273,8 @@ function Tasks() {
   }
 
   return (
-    <Section title="To-do" intro="Things you want done: renew a quota, follow up a payment, file GST. Anyone with edit access can tick them off."
-      action={!missing && <button className="primary" disabled={!d.canEdit} onClick={() => setEdit(blankTask())}>Add with details</button>}>
+    <Section title="To-do" intro="Renew a quota, follow up a payment, file GST. Anyone with edit access can tick them off."
+      action={!missing && <button className="small" disabled={!d.canEdit} onClick={() => setEdit(blankTask())}>Add with details</button>}>
       {missing ? <SetupNote /> : <>
         {d.canEdit && (
           <form className="row" onSubmit={e => { e.preventDefault(); add() }}>

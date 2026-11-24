@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { byOrder, docState, isActive, isLocal } from '../lib/calc'
 import { fmt0, niceDate, todayStr } from '../lib/format'
@@ -11,10 +11,14 @@ type Filter = 'Active' | 'docs' | 'Left' | 'all'
 
 export default function StaffView({ id }: { id: string | null }) {
   const d = useData()
-  const person = id ? d.staff.find(s => s.id === id) : null
+  const person = id && id !== 'new' ? d.staff.find(s => s.id === id) : null
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState<Filter>('Active')
   const [edit, setEdit] = useState<Staff | 'new' | null>(null)
+  // "#staff/new" (quick action on the Overview) opens the add form once.
+  const [handled, setHandled] = useState<string | null>(null)
+  if (id !== handled) { setHandled(id); if (id === 'new' && d.canEdit) setEdit('new') }
+  useEffect(() => { if (id === 'new') history.replaceState(null, '', '#staff') }, [id])
 
   const active = d.staff.filter(isActive)
   const expats = active.filter(s => !isLocal(s)).length
@@ -31,7 +35,7 @@ export default function StaffView({ id }: { id: string | null }) {
     return l.sort(byOrder)
   }, [d.staff, filter, q])
 
-  if (id) return person ? <StaffProfile s={person} /> : <div className="view"><Section title="Not found"><p className="note">This person isn’t in the staff list any more. <a href="#staff">Back to staff</a></p></Section></div>
+  if (id && id !== 'new') return person ? <StaffProfile s={person} /> : <div className="view"><Section title="Not found"><p className="note">This person isn’t in the staff list any more. <a href="#staff">Back to staff</a></p></Section></div>
 
   const open = (s: Staff) => { location.hash = `staff/${s.id}` }
   const files = (s: Staff) => d.files.filter(f => f.owner_type === 'staff' && f.owner_id === s.id).length

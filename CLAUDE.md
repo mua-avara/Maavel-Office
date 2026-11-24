@@ -9,7 +9,8 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - PDFs: jsPDF + jspdf-autotable, loaded lazily from `src/lib/pdf.ts`.
 
 ## Where things are
-- `src/App.tsx` sign-in gate, tabs (hash routes `#home #month #staff #payroll #estimate #projects #company #team` (`#home` = director dashboard, the default); `#staff/<id>` and `#projects/<id>` open a profile or project page), month picker
+- `src/App.tsx` sign-in gate and routing (hash routes `#home #month #staff #payroll #estimate #projects #company #team` (`#home` = director dashboard, the default); `#staff/<id>` and `#projects/<id>` open a profile or project page; `#staff/new`, `#projects/new`, `#month/expense` open the add form once (Overview quick actions))
+- `src/components/Shell.tsx` layout: collapsible left sidebar (phone: slide-out drawer + bottom bar), top bar with month picker, search (`/`), notifications (dashboard alerts, read state per device) and light/dark switch (`src/lib/theme.ts`, saved in localStorage); `src/components/icons.tsx` inline SVG icons
 - `src/data/DataContext.tsx` loads every table, subscribes to realtime, `upsert`/`remove`/`toast`
 - `src/lib/calc.ts` business rules: payroll lines and totals, bill status, document expiry alerts, overhead estimate
 - `src/lib/types.ts` row types (snake_case, same as the database), categories, payment methods
@@ -21,7 +22,7 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - Projects: `src/lib/projects.ts` `projectCost` = payments with `project_id` + paid payroll lines with `projectId` (copied from `staff.project_id` when a sheet is built).
 - New Supabase projects don't grant table access to API roles: every new table needs `grant select, insert, update, delete … to authenticated` in `schema.sql`.
 - `supabase/schema.sql` tables, RLS, realtime publication (idempotent, safe to re-run); `supabase/seed.sql` starting data
-- `src/index.css` "spatial" glass theme, light and dark, mobile first
+- `src/index.css` "site office" theme: navy sidebar, flat light/dark surfaces, orange only for current/urgent, Barlow Semi Condensed headings (Google Fonts in `index.html`); phone layout below 900px
 
 ## Business rules to keep
 - Currency MVR. Months are `YYYY-MM` strings. Rent and most bills are due on the 10th.

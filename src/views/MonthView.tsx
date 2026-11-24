@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { linesFromStaff, monthSummary, payTotals } from '../lib/calc'
 import { fmt, fmt0, niceDate, todayStr } from '../lib/format'
@@ -7,11 +7,15 @@ import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../comp
 
 type PayCtx = { bill?: Bill; due?: string; payment?: Payment } | null
 
-export default function MonthView({ k }: { k: string }) {
+export default function MonthView({ k, action = null }: { k: string; action?: string | null }) {
   const d = useData()
   const c = useMemo(() => monthSummary(k, d.bills, d.payments, d.payroll_months.find(p => p.month === k), d.staff), [k, d.bills, d.payments, d.payroll_months, d.staff])
   const [pay, setPay] = useState<PayCtx>(null)
   const [bill, setBill] = useState<Bill | 'new' | null>(null)
+  // "#month/expense" (quick action on the Overview) opens the expense form once.
+  const [handled, setHandled] = useState<string | null>(null)
+  if (action !== handled) { setHandled(action); if (action === 'expense' && d.canEdit) setPay({}) }
+  useEffect(() => { if (action) history.replaceState(null, '', '#month') }, [action])
   const od = c.unpaid.filter(r => r.status.key === 'overdue').length
   const pay$ = c.pr.source === 'none' ? payTotals(linesFromStaff(d.staff, k)) : c.pr
 
