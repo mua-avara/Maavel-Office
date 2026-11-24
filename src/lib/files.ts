@@ -74,3 +74,40 @@ export async function removeAllFiles(files: FileRow[], ownerType: OwnerType, own
 }
 
 export const fileSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`)
+
+/** A file picked on a form that hasn't been saved yet; uploaded right after the save. */
+export type PendingFile = { kind: string; file: File }
+
+/** Upload files chosen before the record existed. Returns how many failed (and the first reason). */
+export async function uploadPending(ownerType: OwnerType, ownerId: string, list: PendingFile[]) {
+  let failed = 0, reason = ''
+  for (const p of list) {
+    const err = await uploadFile(ownerType, ownerId, p.kind, p.file)
+    if (err) { failed++; reason ||= err }
+  }
+  return { failed, reason }
+}
+
+/**
+ * Share a file. On phones this opens the share sheet (WhatsApp, Mail, AirDrop…) with the file itself.
+ * Where that isn't possible, it copies a private link that works for 7 days.
+ */
+export async function shareFile(f: FileRow): Promise<'shared' | 'copied' | 'cancelled' | 'failed'> {
+  try {
+    if (typeof navigator.share === 'function' && typeof navigator.canShare === 'function') {
+      const url = await fileUrl(f)
+      if (url) {
+        const blob = await (await fetch(url)).blob()
+        const file = new File([blob], f.name, { type: f.mime || blob.type })
+        if (navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: f.name }); return 'shared' }
+          catch (e) { if ((e as Error).name === 'AbortError') return 'cancelled' /* else fall back to a link */ }
+        }
+      }
+    }
+    const { data } = await supabase.storage.from(BUCKET).createSignedUrl(f.path, 7 * 24 * 3600)
+    if (!data?.signedUrl) return 'failed'
+    await navigator.clipboard.writeText(data.signedUrl)
+    return 'copied'
+  } catch { return 'failed' }
+}

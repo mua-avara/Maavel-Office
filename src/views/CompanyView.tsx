@@ -3,7 +3,7 @@ import { useData } from '../data/DataContext'
 import { expiryLevel, LEVEL_PILL } from '../lib/dashboard'
 import { fmt0, niceDate } from '../lib/format'
 import { COMPANY_FILE_KINDS, DOC_CATEGORIES, type CompanyDoc } from '../lib/types'
-import { removeAllFiles } from '../lib/files'
+import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { SetupNote } from './DashboardView'
 import Files from '../components/Files'
@@ -24,6 +24,7 @@ export default function CompanyView() {
   const d = useData()
   const [edit, setEdit] = useState<CompanyDoc | null>(null)
   const [q, setQ] = useState('')
+  const [queue, setQueue] = useState<PendingFile[]>([])
 
   const list = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -45,9 +46,18 @@ export default function CompanyView() {
   async function save() {
     if (!edit) return
     const { id, ...rest } = edit
-    const row = { ...rest, name: rest.name.trim(), issue_date: rest.issue_date || null, expiry_date: rest.expiry_date || null, ...(id ? { id } : {}) }
+    // New documents get their id here so files chosen on the form can be attached straight after saving.
+    const docId = id || crypto.randomUUID()
+    const row = { ...rest, name: rest.name.trim(), issue_date: rest.issue_date || null, expiry_date: rest.expiry_date || null, id: docId }
     if (!row.name) { d.toast('Give the document a name.'); return }
-    if (await d.upsert('company_docs', row)) { setEdit(null); d.toast('Saved') }
+    if (!(await d.upsert('company_docs', row))) return
+    if (queue.length) {
+      const r = await uploadPending('company_doc', docId, queue)
+      await d.reload('files')
+      if (r.failed) { d.toast(`Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}`); setQueue([]); setEdit(null); return }
+    }
+    d.toast(queue.length ? `Saved with ${queue.length} file${queue.length === 1 ? '' : 's'}` : 'Saved')
+    setQueue([]); setEdit(null)
   }
 
   return (
@@ -83,7 +93,7 @@ export default function CompanyView() {
         )}
       </Section>
 
-      <Modal wide open={!!edit} title={edit?.id ? 'Edit document' : 'New document'} onClose={() => setEdit(null)} onSubmit={save}
+      <Modal wide open={!!edit} title={edit?.id ? 'Edit document' : 'New document'} onClose={() => { setEdit(null); setQueue([]) }} onSubmit={save}
         footer={edit?.id ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'company_doc', edit.id); if (await d.remove('company_docs', edit.id)) { setEdit(null); d.reload('files'); d.toast('Deleted') } }} /> : undefined}>
         {edit && <fieldset disabled={!d.canEdit}>
           <Field label="Document"><input required value={edit.name} placeholder="e.g. Business permit" onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
@@ -99,9 +109,11 @@ export default function CompanyView() {
           </div>
           <Field label="Notes"><input value={edit.notes} placeholder="Where the original is kept, who renews it…" onChange={e => setEdit({ ...edit, notes: e.target.value })} /></Field>
         </fieldset>}
-        {edit && (edit.id
-          ? <fieldset className="box"><legend>Scans and copies</legend><Files ownerType="company_doc" ownerId={edit.id} kinds={COMPANY_FILE_KINDS} empty="No scans yet. Upload a photo or PDF of the certificate." /></fieldset>
-          : <p className="note">Save the document first, then open it again to upload a scan.</p>)}
+        {edit && <fieldset className="box"><legend>Scans and copies</legend>
+          {edit.id
+            ? <Files ownerType="company_doc" ownerId={edit.id} kinds={COMPANY_FILE_KINDS} empty="No scans yet. Upload a photo or PDF of the certificate." />
+            : <Files ownerType="company_doc" ownerId="" kinds={COMPANY_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add a photo or PDF of the certificate. It uploads when you save." />}
+        </fieldset>}
       </Modal>
     </div>
   )

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { byOrder, docState, isActive, isLocal } from '../lib/calc'
 import { fmt0, niceDate, todayStr } from '../lib/format'
-import type { Staff, StaffStatus } from '../lib/types'
+import { STAFF_FILE_KINDS, type Staff, type StaffStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
-import { removeAllFiles } from '../lib/files'
+import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
+import Files from '../components/Files'
 import StaffProfile from './StaffProfile'
 
 type Filter = 'Active' | 'docs' | 'Left' | 'all'
@@ -85,6 +86,7 @@ type Form = typeof blank
 export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose: () => void }) {
   const d = useData()
   const upgraded = !d.missing.includes('projects')
+  const [queue, setQueue] = useState<PendingFile[]>([])
   const s = staff && staff !== 'new' ? staff : null
   const [f, setF] = useState<Form>(blank)
   const [key, setKey] = useState<typeof staff>(null)
@@ -107,12 +109,19 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
       ...(upgraded ? { visa_no: f.visa_no.trim(), emergency_contact: f.emergency_contact.trim(), annual_leave_days: Number(f.annual_leave_days) || 0, project_id: f.project_id || null } : {}),
     }
     if (s) row.id = s.id
-    else row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1
-    if (await d.upsert('staff', row)) { onClose(); d.toast('Saved') }
+    else { row.id = crypto.randomUUID(); row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1 }
+    if (!(await d.upsert('staff', row))) return
+    let msg = 'Saved'
+    if (!s && queue.length) {
+      const r = await uploadPending('staff', row.id!, queue)
+      await d.reload('files')
+      msg = r.failed ? `Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}` : `Saved with ${queue.length} file${queue.length === 1 ? '' : 's'}`
+    }
+    setQueue([]); onClose(); d.toast(msg)
   }
 
   return (
-    <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={onClose} onSubmit={save}
+    <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={() => { setQueue([]); onClose() }} onSubmit={save}
       footer={s ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'staff', s.id); if (await d.remove('staff', s.id)) { onClose(); d.reload('files'); location.hash = 'staff'; d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
       <fieldset disabled={!d.canEdit}>
         <div className="grid2">
@@ -148,7 +157,9 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
           </div>
         </fieldset>
         <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
-        {!s && <p className="note">After saving, open the person to upload their passport, e-visa and other scans.</p>}
+        {!s && <fieldset className="box"><legend>Documents and scans</legend>
+          <Files ownerType="staff" ownerId="" kinds={STAFF_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add the passport copy, e-visa, photo or other papers now. They upload when you save." />
+        </fieldset>}
       </fieldset>
       <datalist id="countries"><option>Maldives</option><option>Bangladesh</option><option>India</option><option>Sri Lanka</option><option>Nepal</option></datalist>
     </Modal>

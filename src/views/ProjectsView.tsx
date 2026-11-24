@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useData } from '../data/DataContext'
 import { byOrder, isActive } from '../lib/calc'
 import { fmt, fmt0, monthName, niceDate, num, thisMonth } from '../lib/format'
-import { removeAllFiles } from '../lib/files'
+import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import { projectCost, projectSpendIn } from '../lib/projects'
 import { PROJECT_FILE_KINDS, type Project, type ProjectStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
@@ -15,6 +15,7 @@ export default function ProjectsView({ id }: { id: string | null }) {
   const d = useData()
   const [edit, setEdit] = useState<Project | null>(null)
   const [show, setShow] = useState<'open' | 'all'>('open')
+  const [queue, setQueue] = useState<PendingFile[]>([])
   // "#projects/new" (quick action on the Overview) opens the form once.
   const [handled, setHandled] = useState<string | null>(null)
   if (id !== handled) { setHandled(id); if (id === 'new' && d.canEdit) setEdit(blank()) }
@@ -30,12 +31,20 @@ export default function ProjectsView({ id }: { id: string | null }) {
     if (!edit) return
     if (!edit.name.trim()) { d.toast('Give the project a name.'); return }
     const { id: pid, ...rest } = edit
-    const row = { ...rest, name: rest.name.trim(), client: rest.client.trim(), location: rest.location.trim(), notes: rest.notes.trim(), start_date: rest.start_date || null, end_date: rest.end_date || null, ...(pid ? { id: pid } : {}) }
-    if (await d.upsert('projects', row)) { setEdit(null); d.toast('Project saved') }
+    const projectId = pid || crypto.randomUUID()
+    const row = { ...rest, name: rest.name.trim(), client: rest.client.trim(), location: rest.location.trim(), notes: rest.notes.trim(), start_date: rest.start_date || null, end_date: rest.end_date || null, id: projectId }
+    if (!(await d.upsert('projects', row))) return
+    let msg = 'Project saved'
+    if (!pid && queue.length) {
+      const r = await uploadPending('project', projectId, queue)
+      await d.reload('files')
+      msg = r.failed ? `Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}` : `Project saved with ${queue.length} file${queue.length === 1 ? '' : 's'}`
+    }
+    setQueue([]); setEdit(null); d.toast(msg)
   }
 
   const dialog = (
-    <Modal wide open={!!edit} title={edit?.id ? 'Edit project' : 'New project'} onClose={() => setEdit(null)} onSubmit={save}
+    <Modal wide open={!!edit} title={edit?.id ? 'Edit project' : 'New project'} onClose={() => { setEdit(null); setQueue([]) }} onSubmit={save}
       footer={edit?.id ? <ConfirmDelete label="Delete project" onConfirm={async () => {
         await removeAllFiles(d.files, 'project', edit.id)
         if (await d.remove('projects', edit.id)) { setEdit(null); d.reload('files'); d.reload('payments'); d.reload('staff'); location.hash = 'projects'; d.toast('Project deleted. Its expenses are kept as general overheads.') }
@@ -54,6 +63,9 @@ export default function ProjectsView({ id }: { id: string | null }) {
           <Field label="Finish (planned or actual)"><input type="date" value={edit.end_date ?? ''} onChange={e => setEdit({ ...edit, end_date: e.target.value || null })} /></Field>
         </div>
         <Field label="Notes"><input value={edit.notes} onChange={e => setEdit({ ...edit, notes: e.target.value })} /></Field>
+      </fieldset>}
+      {edit && !edit.id && <fieldset className="box"><legend>Files</legend>
+        <Files ownerType="project" ownerId="" kinds={PROJECT_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add the contract, drawings or quotation now. They upload when you save." />
       </fieldset>}
     </Modal>
   )

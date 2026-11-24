@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useData } from '../data/DataContext'
-import { fileSize, fileUrl, openFile, removeFile, uploadFile } from '../lib/files'
+import { fileSize, fileUrl, openFile, removeFile, shareFile, uploadFile, type PendingFile } from '../lib/files'
 import { niceDate } from '../lib/format'
 import type { FileRow, OwnerType } from '../lib/types'
 import { ConfirmDelete } from './ui'
@@ -8,9 +8,11 @@ import { ConfirmDelete } from './ui'
 /**
  * Scans and photos attached to a record. With one kind it is a compact row
  * (e.g. "E-visa" on a staff profile); with several it shows a kind picker.
+ * On a form for a new record, pass `queue`/`onQueue`: files are held until the record is saved.
  */
-export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No files yet.' }: {
+export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No files yet.', queue, onQueue }: {
   ownerType: OwnerType; ownerId: string; kinds: readonly string[]; compact?: boolean; empty?: string
+  queue?: PendingFile[]; onQueue?: (q: PendingFile[]) => void
 }) {
   const d = useData()
   const input = useRef<HTMLInputElement>(null)
@@ -23,8 +25,15 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
     .filter(f => f.owner_type === ownerType && f.owner_id === ownerId && kinds.includes(f.kind))
     .sort((a, b) => kinds.indexOf(a.kind) - kinds.indexOf(b.kind) || b.created_at.localeCompare(a.created_at))
 
+  const draft = !!onQueue
+
   async function picked(files: FileList | null) {
     if (!files?.length) return
+    if (draft) {
+      onQueue!([...(queue ?? []), ...[...files].map(file => ({ kind, file }))])
+      if (input.current) input.current.value = ''
+      return
+    }
     for (const [i, file] of [...files].entries()) {
       setBusy(files.length > 1 ? `Uploading ${i + 1} of ${files.length}…` : 'Uploading…')
       const err = await uploadFile(ownerType, ownerId, kind, file)
@@ -38,6 +47,12 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
 
   async function view(f: FileRow, download = false) {
     if (!(await openFile(f, download))) d.toast('Couldn’t open the file. Try again.')
+  }
+
+  async function share(f: FileRow) {
+    const r = await shareFile(f)
+    if (r === 'copied') d.toast('Link copied. Paste it in WhatsApp or email; it works for 7 days.')
+    else if (r === 'failed') d.toast('Couldn’t share the file. Try Download instead.')
   }
 
   async function del(f: FileRow) {
@@ -59,12 +74,26 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
               </button>
               <span className="factions">
                 <button type="button" className="small" onClick={() => view(f, true)}>Download</button>
+                <button type="button" className="small" onClick={() => share(f)}>Share</button>
                 {d.canEdit && <ConfirmDelete onConfirm={() => del(f)} />}
               </span>
             </li>
           ))}
         </ul>
-      ) : !compact && <p className="note">{empty}</p>}
+      ) : !compact && !queue?.length && <p className="note">{empty}</p>}
+      {draft && !!queue?.length && (
+        <ul>
+          {queue.map((p, i) => (
+            <li key={`${p.file.name}-${i}`} className="pending">
+              <span className="fname">
+                <span className="ficon" aria-hidden>{p.file.type === 'application/pdf' ? 'PDF' : 'IMG'}</span>
+                <span>{kinds.length > 1 && <b>{p.kind}: </b>}{p.file.name}<span className="sub">{fileSize(p.file.size)} · uploads when you save</span></span>
+              </span>
+              <span className="factions"><button type="button" className="small" onClick={() => onQueue!(queue.filter((_, j) => j !== i))}>Remove</button></span>
+            </li>
+          ))}
+        </ul>
+      )}
       {d.canEdit && (
         <div className="fupload">
           {kinds.length > 1 && (
@@ -73,9 +102,9 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
             </select>
           )}
           <button type="button" className="small" disabled={!!busy} onClick={() => input.current?.click()}>
-            {busy || (compact ? `+ Upload ${kinds[0].toLowerCase()}` : '+ Upload file')}
+            {busy || (compact ? `+ Upload ${kinds[0].toLowerCase()}` : draft ? '+ Add file' : '+ Upload file')}
           </button>
-          <input ref={input} type="file" hidden multiple={!compact} accept="image/*,application/pdf" onChange={e => picked(e.target.files)} />
+          <input ref={input} type="file" hidden multiple={!compact || draft} accept="image/*,application/pdf" onChange={e => picked(e.target.files)} />
         </div>
       )}
     </div>

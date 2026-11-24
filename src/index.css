@@ -750,3 +750,5 @@ dialog[open]::backdrop{animation:fade .25s ease}
 @keyframes orb-a{0%{transform:translate(0,0) scale(1)}100%{transform:translate(60px,40px) scale(1.15)}}
 @keyframes orb-b{0%{transform:translate(0,0) scale(1.1)}100%{transform:translate(-70px,-30px) scale(.95)}}
 @media (prefers-reduced-motion:reduce){.login *,.login *::after{animation:none!important}}
+.files li.pending{border-style:dashed}
+.files li.pending .fname{cursor:default}
