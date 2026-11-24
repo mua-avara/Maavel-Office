@@ -67,7 +67,7 @@ export default function Shell({ view, pageKey, email, month, setMonth, children 
       <a className="skip" href="#main" onClick={e => { e.preventDefault(); document.getElementById('main')?.focus() }}>Skip to main content</a>
       <aside className="side" aria-label="Main menu">
         <div className="side-brand">
-          <img src="/logo.jpg" alt="" width="40" height="40" />
+          <img src="/logo-mark.png" alt="" width="40" height="40" />
           <div className="brand"><b>MAAVEL</b><span>Office</span></div>
           <button className="iconbtn only-phone" aria-label="Close menu" onClick={() => setDrawer(false)}><Icon name="close" /></button>
         </div>

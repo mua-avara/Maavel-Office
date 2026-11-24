@@ -17,7 +17,7 @@ let logoData: string | null = null
 async function logo() {
   if (logoData) return logoData
   try {
-    const blob = await (await fetch('/logo.jpg')).blob()
+    const blob = await (await fetch('/logo-mark.png')).blob()
     logoData = await new Promise<string>(r => { const fr = new FileReader(); fr.onload = () => r(String(fr.result)); fr.readAsDataURL(blob) })
   } catch { logoData = null }
   return logoData
@@ -29,7 +29,7 @@ async function start(title: string, subtitle: string): Promise<Page> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   let y = 16
   const img = await logo()
-  if (img) { try { doc.addImage(img, 'JPEG', M, y - 2, 22, 14.5) } catch { /* logo is optional */ } }
+  if (img) { try { doc.addImage(img, 'PNG', M, y - 4, 20, 20) } catch { /* logo is optional */ } }
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(...NAVY); doc.text('MAAVEL MALDIVES PVT LTD', M + 27, y + 4)
   doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(...ORANGE); doc.text('MAAVEL BUILDING SOLUTIONS', M + 27, y + 9.5)
   doc.setTextColor(...GREY); doc.setFontSize(9); doc.text(`Generated ${niceDate(todayStr)}`, W - M, y + 4, { align: 'right' })

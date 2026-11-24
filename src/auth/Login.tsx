@@ -30,7 +30,7 @@ export default function Login() {
   return (
     <div className="login">
       <form className="panel" onSubmit={signIn}>
-        <div className="brandrow"><img src="/logo.jpg" alt="" /><div className="brand"><b>MAAVEL</b><span>Office &amp; overheads</span></div></div>
+        <div className="login-logo"><img src="/logo.png" alt="Maavel Building Solutions" width="180" height="180" /><span>Office &amp; overheads</span></div>
         <h1>Sign in</h1>
         <label>Work email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label>Password
