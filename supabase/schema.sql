@@ -295,3 +295,9 @@ create policy "maavel files read"   on storage.objects for select to authenticat
 create policy "maavel files insert" on storage.objects for insert to authenticated with check (bucket_id = 'files' and public.my_role() in ('admin','editor'));
 create policy "maavel files update" on storage.objects for update to authenticated using (bucket_id = 'files' and public.my_role() in ('admin','editor'));
 create policy "maavel files delete" on storage.objects for delete to authenticated using (bucket_id = 'files' and public.my_role() in ('admin','editor'));
+
+-- ---------- Access for the admin-users function (added Nov 2026) ----------
+-- The Edge Function uses the secret key (service_role). Newer projects don't give
+-- that role table access automatically, so it couldn't check who is an admin.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on all tables in schema public to service_role;
