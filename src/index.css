@@ -2,7 +2,7 @@
    Deep navy sidebar from the Maavel logo, quiet concrete-grey surfaces, orange only for what is
    current or urgent. Barlow Semi Condensed for headings and figures, the system UI font for text. */
 :root{
-  --navy:#1b3766; --navy-deep:#12264a; --orange:#e9541f;
+  --navy:#1b3766; --navy-deep:#12264a; --orange:#e9541f; --orange-fill:#c4441a; --orange-on-navy:#ff8150;
   --bg:#f3f2ef; --surface:#ffffff; --surface-2:#f8f7f4; --ink:#151b27; --muted:#5f6675; --line:#e2e0da; --line-strong:#cfccc4;
   --link:#1b3766; --btn:#1b3766; --btn-ink:#ffffff; --hover:rgba(27,55,102,.06);
   --ok:#1e7a46; --ok-bg:#e4f3ea; --warn:#8f5400; --warn-bg:#fcefd6; --bad:#b42318; --bad-bg:#fce7e4; --idle:#56607a; --idle-bg:#eceef2;
@@ -41,21 +41,21 @@ a{color:var(--link)}
 /* ---------- app shell ---------- */
 .app{min-height:100vh}
 .side{position:fixed;inset:0 auto 0 0;width:var(--side-w);background:var(--side);color:var(--side-ink);display:flex;flex-direction:column;z-index:40;transition:width .2s ease,transform .25s ease}
-.side-brand{display:flex;align-items:center;gap:12px;padding:18px 18px 14px;min-height:76px}
+.side-brand{display:flex;align-items:center;gap:12px;padding:calc(18px + env(safe-area-inset-top)) 18px 14px;min-height:76px}
 .side-brand img{width:40px;height:40px;object-fit:contain;border-radius:10px;background:#fff;padding:3px;flex:none}
 .brand{display:flex;flex-direction:column;line-height:1;white-space:nowrap;overflow:hidden}
 .brand b{font:700 21px/1 var(--display);letter-spacing:.2em;color:#fff}
-.brand span{font:600 12px/1.4 var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--orange);margin-top:4px}
+.brand span{font:600 12px/1.4 var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--orange-on-navy);margin-top:4px}
 .side-nav{flex:1;overflow-y:auto;padding:4px 12px 12px;display:flex;flex-direction:column;gap:14px}
 .side-label{margin:0 0 4px;padding:0 10px;font:600 11px/1.4 var(--body);letter-spacing:.09em;text-transform:uppercase;color:var(--side-muted);white-space:nowrap}
 .side-nav a{position:relative;display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;color:var(--side-ink);text-decoration:none;font-weight:500;white-space:nowrap;overflow:hidden}
 .side-nav a:hover{background:var(--side-hover);color:#fff}
 .side-nav a[aria-current="page"]{background:var(--side-active);color:#fff;font-weight:600}
-.side-nav a[aria-current="page"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--orange)}
-.side-nav a[aria-current="page"] .ic{color:var(--orange)}
-.side-foot{padding:12px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px}
+.side-nav a[aria-current="page"]::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 3px 3px 0;background:var(--orange-on-navy)}
+.side-nav a[aria-current="page"] .ic{color:var(--orange-on-navy)}
+.side-foot{padding:12px 12px calc(12px + env(safe-area-inset-bottom));border-top:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:10px}
 .me{display:flex;align-items:center;gap:10px;padding:4px 2px}
-.initials{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--orange);color:#fff;font:700 13px/1 var(--body);flex:none}
+.initials{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--orange-fill);color:#fff;font:700 13px/1 var(--body);flex:none}
 .who{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
 .who b{font-size:13.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who small{font-size:12px;color:var(--side-muted);text-transform:capitalize}
@@ -69,7 +69,7 @@ a{color:var(--link)}
 .seg button:hover{color:#fff}
 
 .main{margin-left:var(--side-w);min-width:0;transition:margin-left .2s ease}
-.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:12px 28px;min-height:68px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:10px;padding:calc(12px + env(safe-area-inset-top)) max(28px,env(safe-area-inset-right)) 12px 28px;min-height:68px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .page-title{margin:0;font:700 24px/1.1 var(--display);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .content{max-width:1240px;margin:0 auto;padding:24px 28px 56px;display:flex;flex-direction:column;gap:20px}
 
@@ -86,7 +86,7 @@ a{color:var(--link)}
 
 .iconbtn{position:relative;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;border:none;background:none;color:var(--ink);cursor:pointer;padding:0;flex:none}
 .iconbtn:hover{background:var(--hover)}
-.badge{position:absolute;top:4px;right:3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--orange);color:#fff;font:700 11px/18px var(--body);text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.badge{position:absolute;top:4px;right:3px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--orange-fill);color:#fff;font:700 11px/18px var(--body);text-align:center;box-shadow:0 0 0 2px var(--bg)}
 .monthbar{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:2px}
 .monthbar b{font:700 17px/1 var(--display);min-width:84px;text-align:center;letter-spacing:.02em}
 .monthbar .iconbtn{width:34px;height:34px}
@@ -109,7 +109,7 @@ ul.notes li.seen a{opacity:.62}
 ul.notes .ic,.results .ic{margin-top:2px;color:var(--muted)}
 .searchbox{flex-direction:row;align-items:center;gap:8px;min-width:0;width:300px;height:40px;padding:0 10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--muted);cursor:text}
 .searchbox:focus-within{border-color:var(--navy);box-shadow:0 0 0 3px color-mix(in srgb,var(--navy) 18%,transparent)}
-.searchbox input,.searchbox input:focus{border:none;background:none;padding:0;height:100%;box-shadow:none;outline:none;font-size:14px;flex:1;min-width:0}
+.searchbox input,.searchbox input:focus{border:none;background:none;padding:0;height:100%;box-shadow:none;outline:none;font-size:16px;flex:1;min-width:0}
 .searchbox input::-webkit-search-cancel-button{display:none}
 kbd{font:600 11px/1 var(--body);border:1px solid var(--line-strong);border-radius:5px;padding:3px 6px;color:var(--muted)}
 .results{left:0;right:auto;width:100%;min-width:300px}
@@ -132,7 +132,7 @@ kbd{font:600 11px/1 var(--body);border:1px solid var(--line-strong);border-radiu
   .app.collapsed .side-brand{justify-content:flex-start;padding:18px 18px 14px}
   .scrim{display:block;position:fixed;inset:0;background:rgba(8,12,20,.5);z-index:35;opacity:0;pointer-events:none;transition:opacity .2s}
   .app.drawer-open .scrim{opacity:1;pointer-events:auto}
-  .topbar{padding:10px 12px;gap:6px;min-height:60px;flex-wrap:wrap}
+  .topbar{padding:calc(10px + env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) 10px max(12px,env(safe-area-inset-left));gap:6px;min-height:60px;flex-wrap:wrap}
   .page-title{font-size:21px;flex:1;min-width:0}
   .topbar > .grow{display:none}
   .monthbar{order:10;width:100%;justify-content:space-between}
@@ -177,7 +177,7 @@ button:active{transform:translateY(1px)}
 button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
 button.primary,a.btnlink{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
 button.primary:hover,a.btnlink:hover{filter:brightness(1.12);background:var(--btn)}
-button.accent{background:var(--orange);border-color:var(--orange);color:#fff}
+button.accent{background:var(--orange-fill);border-color:var(--orange-fill);color:#fff}
 button.small{padding:7px 11px;font-size:13px}
 button.link{border:none;background:none;color:var(--link);padding:4px 6px;text-decoration:underline;text-underline-offset:2px}
 button.link:hover{background:none}
@@ -201,7 +201,7 @@ td .sub,.sub{display:block;color:var(--muted);font-size:12.5px;font-weight:400}
 td .sub .pill{margin-top:4px}
 tr.inactive td{opacity:.5}
 .cat{font-size:12.5px;color:var(--muted);white-space:nowrap}
-td input.cell{width:92px;padding:6px 8px;text-align:right;font-size:14px;border-radius:8px}
+td input.cell{width:92px;padding:6px 8px;text-align:right;font-size:16px;border-radius:8px}
 
 .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap;flex:none}
 .pill.paid{background:var(--ok-bg);color:var(--ok)} .pill.overdue{background:var(--bad-bg);color:var(--bad)}
@@ -215,7 +215,7 @@ td.empty{padding:14px 10px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
 .toolbar input,.toolbar select{width:auto;flex:1;min-width:140px}
 label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--muted);flex:1;min-width:140px}
-input,select{font:15px var(--body);padding:10px 11px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink);width:100%}
+input,select{font:16px var(--body);padding:10px 11px;border:1px solid var(--line-strong);border-radius:10px;background:var(--surface);color:var(--ink);width:100%}
 input:focus,select:focus{border-color:var(--navy);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--navy) 18%,transparent)}
 .check{flex-direction:row;align-items:center;gap:8px;min-width:0;color:var(--ink)}
 .check input{width:auto}
@@ -401,5 +401,19 @@ ul.docrows li:last-child{border-bottom:none}
   .profile-head .head-actions button{flex:1}
   .plot{gap:2px;padding-left:30px}
   .plot .bar small{font-size:9.5px}
+}
+/* touch screens: every control at least 44px tall, with room between them */
+@media (pointer:coarse){
+  button,a.btnlink,.quickbtn{min-height:44px}
+  button.small{min-height:40px;padding:9px 13px}
+  button.link{min-height:40px}
+  .small-link{display:inline-flex;align-items:center;min-height:40px;padding:0 2px}
+  .iconbtn,.monthbar .iconbtn{width:44px;height:44px}
+  input,select{min-height:44px}
+  .seg button{min-height:40px}
+  .side-nav a{padding:12px 10px}
+  .plot .bar{min-height:44px}
+  .files .factions{gap:10px}
+  ul.todos input[type=checkbox]{width:26px;height:26px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before{transition:none!important;animation:none!important}}

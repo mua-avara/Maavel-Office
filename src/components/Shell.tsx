@@ -243,7 +243,7 @@ function Search() {
     <div className={`pop search${open ? ' open' : ''}`} ref={ref}>
       <label className="searchbox">
         <Icon name="search" size={18} />
-        <input ref={input} type="search" value={q} placeholder="Search staff, projects, documents…" aria-label="Search"
+        <input ref={input} type="search" value={q} placeholder="Search staff, projects…" aria-label="Search"
           onFocus={() => setOpen(true)} onChange={e => { setQ(e.target.value); setActive(0); setOpen(true) }}
           onKeyDown={e => {
             if (e.key === 'ArrowDown') { e.preventDefault(); setActive(a => Math.min(a + 1, hits.length - 1)) }
