@@ -705,3 +705,48 @@ dialog[open]::backdrop{animation:fade .25s ease}
 .login-logo img{width:168px;height:auto;border-radius:18px;background:#fff;padding:4px}
 .login-logo span{font-size:11.5px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
 .login h1{text-align:center}
+
+/* ---------- sign-in: compact, with an entrance ---------- */
+.login{position:relative;overflow:hidden;background:transparent;padding:20px}
+.login .panel{position:relative;z-index:1;width:min(340px,100%);padding:24px 24px 20px;gap:11px;border-radius:24px;
+  animation:login-in .8s var(--spring) backwards}
+.login-logo{margin:-4px 0 0}
+.login-logo img{width:118px;border-radius:16px;padding:2px;animation:logo-build 1s var(--ease) .25s backwards}
+.login-logo span{font-size:10px;letter-spacing:.24em;animation:fade .6s ease .9s backwards}
+.login h1{font-size:18px;margin:2px 0 0}
+.login label{font-size:11.5px}
+.login input{font-size:14px;padding:9px 11px}
+.login button.primary{padding:11px;font-size:13px;position:relative;overflow:hidden}
+.login .note{font-size:11px;text-align:center}
+.login .ok,.login .err{font-size:12.5px}
+.login .pw button.link{font-size:12px}
+@media (pointer:coarse){.login input{font-size:16px}}
+
+/* fields arrive one after another */
+.login .panel > :nth-child(n+2){animation:rise .55s var(--ease) backwards}
+.login .panel > :nth-child(2){animation-delay:.55s} .login .panel > :nth-child(3){animation-delay:.62s}
+.login .panel > :nth-child(4){animation-delay:.69s} .login .panel > :nth-child(5){animation-delay:.76s}
+.login .panel > :nth-child(6){animation-delay:.83s} .login .panel > :nth-child(7){animation-delay:.9s}
+
+/* a soft sheen passes over the button now and then */
+.login button.primary::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);transform:translateX(-120%);animation:sheen 4.5s ease-in-out 1.6s infinite}
+.login button.primary:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 10px 22px -8px rgba(27,55,102,.55)}
+.login button.busy{animation:pulse 1.2s ease-in-out infinite}
+.login .err{animation:shake .45s ease}
+.login .ok{animation:rise .4s var(--ease)}
+
+/* slow floating colour orbs behind the card */
+.login-orbs{position:absolute;inset:0;pointer-events:none}
+.login-orbs i{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55}
+.login-orbs i:nth-child(1){width:360px;height:360px;left:calc(50% - 360px);top:calc(50% - 300px);background:rgba(27,55,102,.45);animation:orb-a 16s ease-in-out infinite alternate}
+.login-orbs i:nth-child(2){width:300px;height:300px;left:calc(50% + 20px);top:calc(50% - 40px);background:rgba(233,84,31,.32);animation:orb-b 19s ease-in-out infinite alternate}
+.login-orbs i:nth-child(3){width:240px;height:240px;left:calc(50% - 60px);top:calc(50% + 80px);background:rgba(80,150,200,.30);animation:orb-a 23s ease-in-out infinite alternate-reverse}
+
+@keyframes login-in{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+@keyframes logo-build{from{opacity:0;clip-path:inset(100% 0 0 0);transform:scale(.9)}60%{opacity:1}to{opacity:1;clip-path:inset(0 0 0 0);transform:none}}
+@keyframes sheen{0%{transform:translateX(-120%)}35%,100%{transform:translateX(120%)}}
+@keyframes pulse{50%{filter:brightness(1.18)}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes orb-a{0%{transform:translate(0,0) scale(1)}100%{transform:translate(60px,40px) scale(1.15)}}
+@keyframes orb-b{0%{transform:translate(0,0) scale(1.1)}100%{transform:translate(-70px,-30px) scale(.95)}}
+@media (prefers-reduced-motion:reduce){.login *,.login *::after{animation:none!important}}

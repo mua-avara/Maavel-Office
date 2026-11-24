@@ -29,18 +29,19 @@ export default function Login() {
 
   return (
     <div className="login">
+      <div className="login-orbs" aria-hidden><i /><i /><i /></div>
       <form className="panel" onSubmit={signIn}>
         <div className="login-logo"><img src="/logo.png" alt="Maavel Building Solutions" width="180" height="180" /><span>Office &amp; overheads</span></div>
         <h1>Sign in</h1>
         <label>Work email<input type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} /></label>
         <label>Password
           <span className="pw">
-            <input type={show ? 'text' : 'password'} autoComplete="current-password" value={password} placeholder="Leave blank to get an email link" onChange={e => setPassword(e.target.value)} />
+            <input type={show ? 'text' : 'password'} autoComplete="current-password" value={password} placeholder="Optional" onChange={e => setPassword(e.target.value)} />
             <button type="button" className="link" aria-pressed={show} onClick={() => setShow(v => !v)}>{show ? 'Hide' : 'Show'}</button>
           </span>
         </label>
-        {msg && <p className={msg.ok ? 'ok' : 'err'} role="status">{msg.text}</p>}
-        <button className="primary" type="submit" disabled={busy}>{password ? 'Sign in' : 'Email me a sign-in link'}</button>
+        {msg && <p key={msg.text} className={msg.ok ? 'ok' : 'err'} role="status">{msg.text}</p>}
+        <button className={`primary${busy ? ' busy' : ''}`} type="submit" disabled={busy}>{busy ? 'Please wait…' : password ? 'Sign in' : 'Email me a sign-in link'}</button>
         {password && <button type="button" className="link" onClick={sendLink}>Forgot password? Email me a link</button>}
         <p className="note">Only people invited by a Maavel admin can sign in.</p>
       </form>
