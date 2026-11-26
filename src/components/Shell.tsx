@@ -11,18 +11,18 @@ export type View = 'home' | 'month' | 'staff' | 'payroll' | 'estimate' | 'projec
 const NAV: { group: string; items: { id: View; label: string; icon: IconName }[] }[] = [
   { group: '', items: [{ id: 'home', label: 'Overview', icon: 'home' }] },
   { group: 'Money', items: [
-    { id: 'month', label: 'Bills & expenses', icon: 'month' },
+    { id: 'month', label: 'Bills & Expenses', icon: 'month' },
     { id: 'payroll', label: 'Payroll', icon: 'payroll' },
     { id: 'estimate', label: 'Estimate', icon: 'estimate' },
     { id: 'projects', label: 'Projects', icon: 'projects' },
   ] },
   { group: 'People', items: [
-    { id: 'staff', label: 'Staff & visas', icon: 'staff' },
-    { id: 'team', label: 'Team & logins', icon: 'team' },
+    { id: 'staff', label: 'Staff & Visas', icon: 'staff' },
+    { id: 'team', label: 'Team & Logins', icon: 'team' },
   ] },
   { group: 'Company', items: [
-    { id: 'assets', label: 'Vehicles & equipment', icon: 'truck' },
-    { id: 'company', label: 'Licences & documents', icon: 'company' },
+    { id: 'assets', label: 'Vehicles & Equipment', icon: 'truck' },
+    { id: 'company', label: 'Licences & Documents', icon: 'company' },
   ] },
 ]
 const ALL = NAV.flatMap(g => g.items)
@@ -251,7 +251,7 @@ function Search() {
     if (t.length < 2) return []
     const has = (...v: (string | null | undefined)[]) => v.join(' ').toLowerCase().includes(t)
     return [
-      ...d.staff.filter(s => has(s.name, s.designation, s.passport_no, s.wp_no, s.visa_no, s.phone, s.country))
+      ...d.staff.filter(s => has(s.name, s.designation, s.passport_no, s.visa_no, s.phone, s.country))
         .map(s => ({ href: `#staff/${s.id}`, title: s.name, sub: `Staff · ${[s.designation, s.status === 'Left' ? 'left' : ''].filter(Boolean).join(', ')}`, icon: 'staff' as IconName })),
       ...d.projects.filter(p => has(p.name, p.client, p.location)).map(p => ({ href: `#projects/${p.id}`, title: p.name, sub: `Project · ${p.status}`, icon: 'projects' as IconName })),
       ...d.assets.filter(a => has(a.name, a.reg_no, a.type, a.make, a.model, a.chassis_no, a.engine_no, a.serial_no)).map(a => ({ href: `#assets/${a.id}`, title: a.name, sub: `${a.kind === 'vehicle' ? 'Vehicle' : 'Machinery'} · ${[a.reg_no, a.type].filter(Boolean).join(', ')}`, icon: 'truck' as IconName })),

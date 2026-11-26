@@ -140,7 +140,7 @@ export interface FileRow {
   created_at: string
 }
 
-export const STAFF_FILE_KINDS = ['Profile photo', 'Passport photo', 'Passport copy', 'E-visa', 'Work permit', 'Medical', 'Insurance', 'Contract', 'Other'] as const
+export const STAFF_FILE_KINDS = ['Profile photo', 'Passport photo', 'Passport copy', 'E-visa', 'Medical', 'Insurance', 'Contract', 'Other'] as const
 export const COMPANY_FILE_KINDS = ['Certificate / licence', 'Receipt', 'Letter', 'Other'] as const
 export const PROJECT_FILE_KINDS = ['Contract', 'Drawing', 'Quotation', 'Invoice', 'Photo', 'Other'] as const
 
@@ -221,6 +221,6 @@ export const CATEGORIES = [
 export const METHODS = ['Bank transfer', 'Cash', 'Card', 'Cheque'] as const
 
 export const DOCS: [keyof Staff, string][] = [
-  ['passport_exp', 'Passport'], ['wp_exp', 'Work permit'], ['visa_exp', 'E-visa'],
+  ['passport_exp', 'Passport'], ['visa_exp', 'E-visa'],
   ['medical_exp', 'Medical'], ['insurance_exp', 'Insurance'],
 ]

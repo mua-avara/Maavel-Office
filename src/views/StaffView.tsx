@@ -144,12 +144,10 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
             <Field label="Emergency contact" wide><input value={f.emergency_contact} placeholder="Name, relation, phone" onChange={set('emergency_contact')} /></Field>
           </>}
         </div>
-        <fieldset className="box"><legend>Passport and permits</legend>
+        <fieldset className="box"><legend>Passport and e-visa</legend>
           <div className="grid2">
             <Field label="Passport / ID no."><input value={f.passport_no} onChange={set('passport_no')} /></Field>
             <Field label="Passport expiry"><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
-            <Field label="Work permit no."><input value={f.wp_no} onChange={set('wp_no')} /></Field>
-            <Field label="Work permit expiry"><input type="date" value={f.wp_exp} onChange={set('wp_exp')} /></Field>
             {upgraded && <Field label="E-visa no."><input value={f.visa_no} onChange={set('visa_no')} /></Field>}
             <Field label="E-visa expiry"><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
             <Field label="Medical expiry"><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>

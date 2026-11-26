@@ -12,7 +12,6 @@ import { StaffDialog } from './StaffView'
 const DOC_ROWS: { label: string; kind: string; no?: keyof Staff; exp?: keyof Staff }[] = [
   { label: 'Passport', kind: 'Passport copy', no: 'passport_no', exp: 'passport_exp' },
   { label: 'E-visa', kind: 'E-visa', no: 'visa_no', exp: 'visa_exp' },
-  { label: 'Work permit', kind: 'Work permit', no: 'wp_no', exp: 'wp_exp' },
   { label: 'Medical', kind: 'Medical', exp: 'medical_exp' },
   { label: 'Insurance', kind: 'Insurance', exp: 'insurance_exp' },
 ]

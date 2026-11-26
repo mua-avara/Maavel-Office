@@ -103,7 +103,7 @@ export default function DashboardView() {
         </div>
       </Section>
 
-      <Section title="People and visas" intro="Headcount, who joined or left, and passport, work permit, visa, medical and insurance renewals in the next 90 days."
+      <Section title="People and visas" intro="Headcount, who joined or left, and passport, e-visa, medical and insurance renewals in the next 90 days."
         action={<a className="btnlink" href="#staff">Open staff</a>}>
         <div className="tiles">
           <Tile label="Expatriates" value={x.expats.length} sub={`${x.active.length - x.expats.length} local`} />

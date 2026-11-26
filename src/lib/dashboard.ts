@@ -93,8 +93,8 @@ export function dashboard(d: Input) {
     return { staff: s, doc: label, date, ...expiryLevel(date) }
   })).filter(x => x.date && (x.days ?? 999) <= 90)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
-  // Expats missing a passport, work permit or visa date.
-  const missingDates = expats.filter(s => !s.passport_exp || !s.wp_exp || !s.visa_exp)
+  // Expats missing a passport or e-visa date (the e-visa replaces the old work permit).
+  const missingDates = expats.filter(s => !s.passport_exp || !s.visa_exp)
 
   /* ---- company documents ---- */
   const companyDocs = [...d.company_docs].map(c => ({ doc: c, ...expiryLevel(c.expiry_date) }))
@@ -142,7 +142,7 @@ export function dashboard(d: Input) {
   if (aBad.length) alerts.push({ level: 'bad', title: `${plural(aBad.length, 'vehicle or equipment renewal', 'vehicle and equipment renewals')}: expired or due within 30 days`, detail: aDetail(aBad), href: '#assets' })
   if (aWarn.length) alerts.push({ level: 'warn', title: `${plural(aWarn.length, 'vehicle or equipment renewal', 'vehicle and equipment renewals')} due in 31–60 days`, detail: aDetail(aWarn), href: '#assets' })
   if (overdueTasks.length) alerts.push({ level: 'bad', title: `${plural(overdueTasks.length, 'to-do')} overdue`, detail: overdueTasks.map(t => t.title).join(', '), href: '#home' })
-  if (missingDates.length) alerts.push({ level: 'warn', title: `${plural(missingDates.length, 'expat')} without passport, work permit or visa dates`, detail: 'Add the dates so renewals are not missed: ' + missingDates.map(s => s.name).join(', '), href: '#staff' })
+  if (missingDates.length) alerts.push({ level: 'warn', title: `${plural(missingDates.length, 'expat')} without passport or e-visa dates`, detail: 'Add the dates so renewals are not missed: ' + missingDates.map(s => s.name).join(', '), href: '#staff' })
   alerts.sort((a, b) => (a.level === b.level ? 0 : a.level === 'bad' ? -1 : 1))
 
   /* ---- next 30 days ---- */

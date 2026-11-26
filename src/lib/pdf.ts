@@ -161,8 +161,8 @@ export async function directorPdf(x: Dashboard) {
   section(p, 'Staff documents to renew (next 90 days)')
   table(p, { head: [['Name', 'Document', 'Expires', 'Status']], body: x.staffDocs.length ? x.staffDocs.map(r => [r.staff.name, r.doc, niceDate(r.date), r.text]) : [['None', '', '', '']], headStyles: { ...head, fillColor: ORANGE } })
   if (x.missingDates.length) {
-    section(p, 'Expats with missing passport, work permit or visa dates')
-    table(p, { head: [['Name', 'Missing']], body: x.missingDates.map(s => [s.name, [!s.passport_exp && 'Passport', !s.wp_exp && 'Work permit', !s.visa_exp && 'Visa'].filter(Boolean).join(', ')]) })
+    section(p, 'Expats with missing passport or e-visa dates')
+    table(p, { head: [['Name', 'Missing']], body: x.missingDates.map(s => [s.name, [!s.passport_exp && 'Passport', !s.visa_exp && 'E-visa'].filter(Boolean).join(', ')]) })
   }
   if (x.companyDocs.length) {
     section(p, 'Company licences and documents')
