@@ -46,9 +46,14 @@ const DOCS: Record<string, { label: string; schema: object; hint: string }> = {
     hint: 'reg_no is the number plate or vessel registration number exactly as printed (e.g. "P-1234" or "A1234A"). chassis_no may be called VIN, chassis or hull number. year is the year of manufacture.',
   },
   insurance: {
-    label: 'insurance policy or certificate',
-    schema: obj({ insurer: text, policy_no: text, insured_item: text, reg_no: text, start_date: date, expiry_date: date }),
-    hint: 'insurer is the insurance company. expiry_date is the end of the period of cover.',
+    label: 'insurance policy, card or certificate (for a vehicle, machine or a person)',
+    schema: obj({ insurer: text, policy_no: text, insured_item: text, insured_name: text, reg_no: text, start_date: date, expiry_date: date }),
+    hint: 'insurer is the insurance company. insured_name is the person covered (for health or work insurance); insured_item is the vehicle or machine covered. expiry_date is the end of the period of cover.',
+  },
+  medical: {
+    label: 'medical / fitness certificate or medical report for a worker',
+    schema: obj({ holder_name: text, passport_no: text, result: text, clinic: text, issue_date: date, expiry_date: date }),
+    hint: 'result is the outcome such as "Fit" or "Unfit". issue_date is the examination or issue date. expiry_date is the valid-until date if printed; if the certificate only states a validity period (for example "valid for one year"), work out the expiry from the issue date; otherwise null.',
   },
   road_worthiness: {
     label: 'road worthiness, survey or inspection certificate',

@@ -110,17 +110,25 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
       put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null)
       put('passport_exp', isoDate(x.expiry_date))
       put('country', str(x.nationality) && titleCase(str(x.nationality)!))
-    } else {
+    } else if (type === 'evisa') {
       put('visa_no', str(x.visa_no))
       put('visa_exp', isoDate(x.expiry_date))
       put('name', str(x.holder_name) && titleCase(str(x.holder_name)!), true)
       put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null, true)
+    } else if (type === 'medical') {
+      put('medical_exp', isoDate(x.expiry_date))
+      put('name', str(x.holder_name) && titleCase(str(x.holder_name)!), true)
+      put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null, true)
+    } else if (type === 'insurance') {
+      put('insurance_exp', isoDate(x.expiry_date))
+      put('name', str(x.insured_name) && titleCase(str(x.insured_name)!), true)
     }
     const keys = Object.keys(next)
     if (keys.length) {
       setF(cur => ({ ...cur, ...next }))
       setHl(cur => new Set([...cur, ...keys]))
-      setQueue(q => [...q, { kind: type === 'passport' ? 'Passport copy' : 'E-visa', file }])
+      const kind = type === 'passport' ? 'Passport copy' : type === 'evisa' ? 'E-visa' : type === 'medical' ? 'Medical' : 'Insurance'
+      setQueue(q => [...q, { kind, file }])
     }
     return keys.length
   }
@@ -152,7 +160,12 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
     <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={() => { setQueue([]); onClose() }} onSubmit={save}
       footer={s ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'staff', s.id); if (await d.remove('staff', s.id)) { onClose(); d.reload('files'); location.hash = 'staff'; d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
       <fieldset disabled={!d.canEdit}>
-        <ScanToFill options={[{ type: 'passport', label: 'Passport' }, ...(upgraded ? [{ type: 'evisa' as const, label: 'E-visa' }] : [])]} onResult={scanned} />
+        <ScanToFill options={[
+          { type: 'passport', label: 'Passport' },
+          ...(upgraded ? [{ type: 'evisa' as const, label: 'E-visa' }] : []),
+          { type: 'medical', label: 'Medical' },
+          { type: 'insurance', label: 'Insurance' },
+        ]} onResult={scanned} />
         <div className="grid2">
           <Field label="Full name" hl={hl.has('name')}><input required value={f.name} onChange={set('name')} /></Field>
           <Field label="Designation"><input value={f.designation} placeholder="e.g. Mason" onChange={set('designation')} /></Field>
@@ -173,14 +186,14 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
             <Field label="Emergency contact" wide><input value={f.emergency_contact} placeholder="Name, relation, phone" onChange={set('emergency_contact')} /></Field>
           </>}
         </div>
-        <fieldset className="box"><legend>Passport and e-visa</legend>
+        <fieldset className="box"><legend>Passport, e-visa, medical and insurance</legend>
           <div className="grid2">
             <Field label="Passport / ID no." hl={hl.has('passport_no')}><input value={f.passport_no} onChange={set('passport_no')} /></Field>
             <Field label="Passport expiry" hl={hl.has('passport_exp')}><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
             {upgraded && <Field label="E-visa no." hl={hl.has('visa_no')}><input value={f.visa_no} onChange={set('visa_no')} /></Field>}
             <Field label="E-visa expiry" hl={hl.has('visa_exp')}><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
-            <Field label="Medical expiry"><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
-            <Field label="Insurance expiry"><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
+            <Field label="Medical expiry" hl={hl.has('medical_exp')}><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
+            <Field label="Insurance expiry" hl={hl.has('insurance_exp')}><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
           </div>
         </fieldset>
         <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
