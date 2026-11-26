@@ -6,7 +6,7 @@ import { MONTHS, niceDate, shiftMonth } from '../lib/format'
 import { applyTheme, pref, savedTheme, setPref, type ThemeChoice } from '../lib/theme'
 import { Icon, type IconName } from './icons'
 
-export type View = 'home' | 'month' | 'staff' | 'payroll' | 'estimate' | 'projects' | 'assets' | 'company' | 'team'
+export type View = 'home' | 'month' | 'staff' | 'payroll' | 'estimate' | 'boq' | 'projects' | 'assets' | 'company' | 'team'
 
 const NAV: { group: string; items: { id: View; label: string; icon: IconName }[] }[] = [
   { group: '', items: [{ id: 'home', label: 'Overview', icon: 'home' }] },
@@ -14,6 +14,7 @@ const NAV: { group: string; items: { id: View; label: string; icon: IconName }[]
     { id: 'month', label: 'Bills & Expenses', icon: 'month' },
     { id: 'payroll', label: 'Payroll', icon: 'payroll' },
     { id: 'estimate', label: 'Estimate', icon: 'estimate' },
+    { id: 'boq', label: 'BOQ & Estimates', icon: 'ruler' },
     { id: 'projects', label: 'Projects', icon: 'projects' },
   ] },
   { group: 'People', items: [

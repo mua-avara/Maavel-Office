@@ -350,3 +350,100 @@ exception when duplicate_object then null; end $$;
 -- Files can now belong to a vehicle or machine too.
 alter table public.files drop constraint if exists files_owner_type_check;
 alter table public.files add constraint files_owner_type_check check (owner_type in ('staff','company_doc','project','asset'));
+
+-- ---------- BOQ & estimates (added Nov 2026) ----------
+-- Self-contained and safe to re-run: paste just this section into the SQL Editor.
+create table if not exists public.boq_rates (
+  id text primary key default gen_random_uuid()::text,
+  code text default '',
+  section text not null default 'Other',
+  description text not null,
+  unit text not null default 'nos',
+  rate numeric,
+  notes text default '',
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.boqs (
+  id text primary key default gen_random_uuid()::text,
+  project_id text references public.projects(id) on delete set null,
+  title text not null,
+  status text not null default 'reading' check (status in ('reading','draft','final')),
+  assumptions jsonb not null default '{}'::jsonb,
+  source jsonb not null default '{}'::jsonb,
+  overhead_pct numeric not null default 10,
+  contingency_pct numeric not null default 5,
+  notes text default '',
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create table if not exists public.boq_items (
+  id text primary key default gen_random_uuid()::text,
+  boq_id text not null references public.boqs(id) on delete cascade,
+  section text not null default 'Other',
+  item_no text default '',
+  description text not null,
+  unit text not null default 'nos',
+  qty numeric not null default 0,
+  rate numeric,
+  rate_source text not null default 'manual' check (rate_source in ('maavel','suggested','manual')),
+  rate_note text default '',
+  confidence text not null default 'medium' check (confidence in ('high','medium','low')),
+  basis text default '',
+  sheet text default '',
+  sort int not null default 0
+);
+create index if not exists boq_items_boq_idx on public.boq_items(boq_id);
+
+do $$
+declare t text;
+begin
+  foreach t in array array['boq_rates','boqs','boq_items'] loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('drop policy if exists "%1$s read" on public.%1$I', t);
+    execute format('create policy "%1$s read" on public.%1$I for select to authenticated using (public.my_role() is not null)', t);
+    execute format('drop policy if exists "%1$s write" on public.%1$I', t);
+    execute format('create policy "%1$s write" on public.%1$I for all to authenticated using (public.my_role() in (''admin'',''editor'')) with check (public.my_role() in (''admin'',''editor''))', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated, service_role', t);
+    begin
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    exception when duplicate_object then null;
+    end;
+  end loop;
+end $$;
+
+-- Drawings can be attached to a BOQ.
+alter table public.files drop constraint if exists files_owner_type_check;
+alter table public.files add constraint files_owner_type_check check (owner_type in ('staff','company_doc','project','asset','boq'));
+
+-- Starter rate list (rates left blank for Maavel to fill). Only added once.
+insert into public.boq_rates (code, section, description, unit)
+select * from (values
+  ('PRE-01','Preliminaries','Site establishment, temporary facilities and mobilisation','item'),
+  ('SUB-01','Substructure','Excavation for foundations, disposal on site','m3'),
+  ('SUB-02','Substructure','Sand / coral backfill, compacted in layers','m3'),
+  ('SUB-03','Substructure','Lean concrete blinding 50 mm','m2'),
+  ('CON-01','Concrete & frame','Reinforced concrete grade C25 in footings','m3'),
+  ('CON-02','Concrete & frame','Reinforced concrete grade C25 in columns','m3'),
+  ('CON-03','Concrete & frame','Reinforced concrete grade C25 in beams','m3'),
+  ('CON-04','Concrete & frame','Reinforced concrete grade C25 in suspended slabs','m3'),
+  ('CON-05','Concrete & frame','High-yield steel reinforcement, cut, bent and fixed','kg'),
+  ('CON-06','Concrete & frame','Formwork to sides and soffits','m2'),
+  ('MAS-01','Masonry','150 mm hollow concrete blockwork','m2'),
+  ('MAS-02','Masonry','200 mm hollow concrete blockwork','m2'),
+  ('ROF-01','Roofing','Roof covering, metal sheet on purlins including insulation','m2'),
+  ('ROF-02','Roofing','Waterproofing membrane to flat roof','m2'),
+  ('DW-01','Doors & windows','Internal door complete with frame and ironmongery','nos'),
+  ('DW-02','Doors & windows','External door complete with frame and ironmongery','nos'),
+  ('DW-03','Doors & windows','Aluminium window with glazing','m2'),
+  ('FIN-01','Finishes','Cement sand plaster 15 mm to walls','m2'),
+  ('FIN-02','Finishes','Emulsion paint, two coats on primer, to walls and ceilings','m2'),
+  ('FIN-03','Finishes','Ceramic floor tiles on screed','m2'),
+  ('FIN-04','Finishes','Ceramic wall tiles in wet areas','m2'),
+  ('FIN-05','Finishes','Gypsum board false ceiling','m2'),
+  ('PLM-01','Plumbing','Sanitary fixtures complete (WC, basin, shower)','nos'),
+  ('PLM-02','Plumbing','Water supply and drainage pipework','item'),
+  ('ELE-01','Electrical','Lighting and power points complete','nos'),
+  ('ELE-02','Electrical','Distribution board, wiring and earthing','item'),
+  ('EXT-01','External works','Paving / external hard landscaping','m2')
+) as v(code, section, description, unit)
+where not exists (select 1 from public.boq_rates);

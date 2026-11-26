@@ -25,3 +25,6 @@ dist-ssr
 
 .env
 .env.local
+
+# copied from node_modules by "npm run copy-wasm" (DWG reader)
+public/wasm/

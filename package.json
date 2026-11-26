@@ -7,12 +7,18 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "copy-wasm": "node -e \"const fs=require('fs');fs.mkdirSync('public/wasm',{recursive:true});fs.copyFileSync('node_modules/@mlightcad/libredwg-web/wasm/libredwg-web.wasm','public/wasm/libredwg-web.wasm')\"",
+    "predev": "npm run copy-wasm",
+    "prebuild": "npm run copy-wasm"
   },
   "dependencies": {
+    "@mlightcad/libredwg-web": "0.8.7",
     "@supabase/supabase-js": "^2.119.2",
+    "dxf-parser": "1.1.2",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
+    "pdf-lib": "1.17.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

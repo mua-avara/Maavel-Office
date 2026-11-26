@@ -14,8 +14,9 @@ import DashboardView from './views/DashboardView'
 import CompanyView from './views/CompanyView'
 import ProjectsView from './views/ProjectsView'
 import AssetsView from './views/AssetsView'
+import BoqView from './views/BoqView'
 
-const VIEWS: View[] = ['home', 'month', 'staff', 'payroll', 'estimate', 'projects', 'assets', 'company', 'team']
+const VIEWS: View[] = ['home', 'month', 'staff', 'payroll', 'estimate', 'boq', 'projects', 'assets', 'company', 'team']
 
 /** "#staff/abc" → view "staff", item "abc". */
 const parseHash = (): { v: View; id: string | null } => {
@@ -58,7 +59,7 @@ function Main({ email }: { email: string }) {
   }, [])
 
   return (
-    <Shell view={view} pageKey={`${view}/${itemId && itemId !== 'new' && itemId !== 'expense' && !itemId.startsWith('new-') ? itemId : ''}`} email={email} month={k} setMonth={setK}>
+    <Shell view={view} pageKey={`${view}/${itemId && (itemId !== 'new' || view === 'boq') && itemId !== 'expense' && !itemId.startsWith('new-') ? itemId : ''}`} email={email} month={k} setMonth={setK}>
       {d.error && <div className="banner">Couldn’t load data: {d.error}</div>}
       {d.loaded && !d.me && <div className="banner">Your account is signed in but has no access yet. Ask a Maavel admin to add you.</div>}
       {d.me && !d.canEdit && <div className="banner">You have view-only access. Ask an admin if you need to make changes.</div>}
@@ -71,6 +72,7 @@ function Main({ email }: { email: string }) {
           : view === 'estimate' ? <EstimateView k={k} />
           : view === 'projects' ? <ProjectsView id={itemId} />
           : view === 'assets' ? <AssetsView id={itemId} />
+          : view === 'boq' ? <BoqView id={itemId} />
           : view === 'company' ? <CompanyView />
           : <TeamView />
       )}

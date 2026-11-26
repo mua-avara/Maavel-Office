@@ -4,6 +4,7 @@ import { byOrder, isActive } from '../lib/calc'
 import { fmt, fmt0, monthName, niceDate, num, thisMonth } from '../lib/format'
 import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import { projectCost, projectSpendIn } from '../lib/projects'
+import { boqTotals } from '../lib/boq'
 import { PROJECT_FILE_KINDS, type Project, type ProjectStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import Files from '../components/Files'
@@ -122,6 +123,7 @@ function Progress({ pct }: { pct: number }) {
 function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeof projectCost>; onEdit: () => void; dialog: ReactNode }) {
   const d = useData()
   const team = d.staff.filter(s => isActive(s) && s.project_id === p.id).sort(byOrder)
+  const boqs = d.boqs.filter(b => b.project_id === p.id)
   const fleet = d.assets.filter(a => a.project_id === p.id && a.status !== 'Sold').sort((a, b) => a.name.localeCompare(b.name))
   const max = Math.max(1, ...c.months.map(m => m[1] + m[2]))
 
@@ -177,6 +179,14 @@ function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeo
           </>}
         </Section>
       </div>
+
+      {!d.missing.includes('boqs') && (
+        <Section title="Bills of quantities" intro="Estimates made from this project's drawings." action={d.canEdit ? <a className="btnlink" href="#boq/new">New BOQ</a> : undefined}>
+          {!boqs.length ? <p className="empty">No BOQ for this project yet.</p> : boqs.map(b => (
+            <div className="kv" key={b.id}><a className="plain" href={`#boq/${b.id}`}>{b.title}<span className="sub">{b.status === 'final' ? 'Final' : b.status === 'draft' ? 'Draft' : 'Reading drawings'}</span></a><span>{fmt0(boqTotals(b, d.boq_items.filter(i => i.boq_id === b.id)).total)}</span></div>
+          ))}
+        </Section>
+      )}
 
       <Section title="Expenses" intro="Add these from the Month tab (Add expense) and choose this project.">
         <div className="tablewrap"><table>

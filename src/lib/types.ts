@@ -125,7 +125,7 @@ export interface Task {
   created_at?: string
 }
 
-export type OwnerType = 'staff' | 'company_doc' | 'project' | 'asset'
+export type OwnerType = 'staff' | 'company_doc' | 'project' | 'asset' | 'boq'
 
 export interface FileRow {
   id: string
@@ -207,6 +207,31 @@ export const VESSEL_TYPES = ['Dhoni', 'Launch', 'Speedboat', 'Barge']
 export const MACHINE_TYPES = ['Excavator', 'Crane', 'Concrete mixer', 'Generator', 'Compressor', 'Roller', 'Welding machine', 'Scaffolding set', 'Other'] as const
 export const ASSET_STATUSES: AssetStatus[] = ['In use', 'Idle', 'Under repair', 'Sold']
 export const ASSET_FILE_KINDS = ['Photo', 'Registration', 'Insurance', 'Road worthiness', 'Annual fee receipt', 'Other'] as const
+
+export const BOQ_SECTIONS = ['Preliminaries', 'Substructure', 'Concrete & frame', 'Masonry', 'Roofing', 'Doors & windows', 'Finishes', 'Plumbing', 'Electrical', 'External works', 'Other'] as const
+export const BOQ_UNITS = ['m', 'm2', 'm3', 'nos', 'kg', 'item', 'lot'] as const
+export type Confidence = 'high' | 'medium' | 'low'
+export type RateSource = 'maavel' | 'suggested' | 'manual'
+
+export interface BoqRate { id: string; code: string; section: string; description: string; unit: string; rate: number | null; notes: string }
+
+export interface BoqAssumptions {
+  floors: number; floorHeight: number; blockMm: number; slabMm: number
+  finishes: 'basic' | 'standard' | 'high'; includeMep: boolean; notes: string
+}
+
+export interface Boq {
+  id: string; project_id: string | null; title: string; status: 'reading' | 'draft' | 'final'
+  assumptions: Partial<BoqAssumptions> & { ai?: string[]; checks?: string[] }
+  source: { files?: { name: string; kind: string }[]; progress?: string; error?: string }
+  overhead_pct: number; contingency_pct: number; notes: string; created_at?: string
+}
+
+export interface BoqItem {
+  id: string; boq_id: string; section: string; item_no: string; description: string; unit: string
+  qty: number; rate: number | null; rate_source: RateSource; rate_note: string
+  confidence: Confidence; basis: string; sheet: string; sort: number
+}
 
 export const DOC_CATEGORIES = [
   'Registration & licence', 'Tax (MIRA)', 'Lease & rent agreement', 'Insurance', 'Vehicle & vessel',

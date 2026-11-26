@@ -5,6 +5,8 @@ import { lineTotal, payTotals, type Estimate, type MonthSummary } from './calc'
 import type { Dashboard } from './dashboard'
 import { CATEGORIES, type PayLine, type Project, type Staff } from './types'
 import type { ProjectCost } from './projects'
+import { amount, boqTotals, bySection } from './boq'
+import { BOQ_SECTIONS, type Boq, type BoqItem } from './types'
 
 type RGB = [number, number, number]
 const NAVY: RGB = [27, 55, 102], ORANGE: RGB = [233, 84, 31], GREY: RGB = [93, 102, 120], INK: RGB = [20, 24, 32], SOFT: RGB = [238, 241, 247]
@@ -206,4 +208,37 @@ export async function projectPdf(pr: Project, c: ProjectCost, team: Staff[]) {
     table(p, { head: [['Name', 'Job', 'Monthly cost (MVR)']], body: team.map(s => [s.name, s.designation, fmt0(Number(s.basic) + Number(s.food) + Number(s.allowance))]), columnStyles: { 2: { halign: 'right' } } })
   }
   finish(p, 'Prepared by', 'Managing Director', `Project ${pr.name}`, `Maavel-project-${pr.name.replace(/[^\w]+/g, '-')}.pdf`)
+}
+
+export async function boqPdf(boq: Boq, items: BoqItem[], projectName?: string) {
+  const t = boqTotals(boq, items)
+  const letter = (s: string) => String.fromCharCode(65 + Math.max(0, (BOQ_SECTIONS as readonly string[]).indexOf(s)))
+  const p = await start(`Bill of quantities: ${boq.title}`,
+    [projectName && `Project: ${projectName}`, boq.status === 'final' ? 'Final' : 'Draft estimate', `${items.length} items`, `Total MVR ${fmt(t.total)}`].filter(Boolean).join('  ·  '))
+  const right = { halign: 'right' as const }
+  table(p, {
+    head: [['Summary', 'MVR']],
+    body: [...t.sections.map(([s, v]) => [`${letter(s)}. ${s}`, fmt(v)]), ['Direct cost', fmt(t.direct)], [`Overhead & profit (${boq.overhead_pct}%)`, fmt(t.overhead)], [`Contingency (${boq.contingency_pct}%)`, fmt(t.contingency)]],
+    foot: [['Total', `MVR ${fmt(t.total)}`]], footStyles: footSoft, columnStyles: { 1: right },
+  })
+  if (t.unpriced) { p.doc.setFontSize(9); p.doc.setTextColor(...ORANGE); p.doc.text(`${t.unpriced} item(s) have no rate yet and are not included in the totals.`, M, p.y - 3); p.y += 3 }
+  const sorted = [...items].sort(bySection)
+  for (const s of BOQ_SECTIONS) {
+    const list = sorted.filter(i => i.section === s)
+    if (!list.length) continue
+    section(p, `${letter(s)}. ${s}`)
+    table(p, {
+      head: [['Item', 'Description', 'Unit', 'Qty', 'Rate', 'Amount']],
+      body: list.map((i, n) => [`${letter(s)}.${n + 1}`, i.description, i.unit, fmt(i.qty), i.rate == null ? '–' : fmt(i.rate), i.rate == null ? '–' : fmt(amount(i))]),
+      foot: [['', `Total carried to summary`, '', '', '', fmt(list.reduce((a, i) => a + amount(i), 0))]], footStyles: footSoft,
+      theme: 'striped', alternateRowStyles: { fillColor: [246, 247, 250] },
+      columnStyles: { 0: { cellWidth: 14 }, 2: { cellWidth: 13 }, 3: { ...right, cellWidth: 20 }, 4: { ...right, cellWidth: 22 }, 5: { ...right, cellWidth: 28 } },
+    })
+  }
+  const notes = [...(boq.assumptions.checks ?? []), ...(boq.assumptions.ai ?? [])]
+  if (notes.length) {
+    section(p, 'Assumptions and notes')
+    table(p, { body: notes.map(n => [n]), theme: 'plain', styles: { ...base, fontSize: 8.5, textColor: GREY } })
+  }
+  finish(p, 'Prepared by', 'Managing Director', `BOQ ${boq.title}`, `Maavel-BOQ-${boq.title.replace(/[^\w]+/g, '-')}.pdf`)
 }

@@ -61,6 +61,16 @@ Forms for staff, vehicles and company documents have a **Scan a document** box: 
 
 Each scan costs roughly 1–3 US cents. The document is sent to Anthropic to be read; nothing from it is logged.
 
+## BOQ from drawings (one-time setup)
+
+**BOQ & Estimates** (under Money) makes a Bill of Quantities from drawings: PDF drawing sets, DXF, or DWG. The AI measures quantities by trade (Preliminaries, Substructure, Concrete & frame, Masonry, Roofing, Doors & windows, Finishes, Plumbing, Electrical, External works) and prices them from the **Maavel rate list** first; where a rate is blank it suggests a Maldives market rate, shown in orange for you to accept. Every BOQ starts as a **draft**: it is a budget-level estimate, so check the flagged notes and low-confidence lines before using it. Export to PDF or Excel (CSV), or use the total as a project's budget.
+
+1. Run the **BOQ & estimates** section of `supabase/schema.sql` in the SQL Editor.
+2. Deploy a function named `boq-generate` the same way as `scan-document`, pasting `supabase/functions/boq-generate/index.ts` (same `ANTHROPIC_API_KEY`).
+3. Fill in your own rates under **BOQ & Estimates → Rate list** (MVR, supply and fix, before overhead and profit).
+
+Tips: DXF and DWG are read in the browser and give exact lengths and counts when the drawing has proper layers. Plotted or exploded DWG sheets (everything on one layer at paper size) are scaled by the 1:N on the sheet, but the **PDF of the same set usually gives better quantities**. A BOQ costs roughly US$0.10–1.00 depending on the number of sheets, shown before you start.
+
 ## Files and scans
 
 Uploaded files (passport copies, e-visas, photos, licences, project drawings) are kept in a private Supabase Storage bucket called `files`, created by `schema.sql`. Only signed-in people with a role can open them, through links that expire after 5 minutes; editors and admins can upload and delete. Phone photos are shrunk to about 2000 px before upload. The free plan includes 1 GB.

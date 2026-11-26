@@ -821,3 +821,100 @@ label.scanned .lbl::after{content:" ✓ scanned";color:var(--ok);font-weight:600
 .files.compact .fupload{margin:0}
 .files.compact > .fstatus.na{margin-right:auto}
 @media (pointer:coarse){.files .ficonbtn{width:40px;height:40px}.files .fstatus{padding:6px 12px 6px 10px}}
+
+/* ---------- BOQ & estimates ---------- */
+.dropzone{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:18px;border:1.5px dashed var(--line-strong);border-radius:14px;background:var(--surface-2);margin-top:12px}
+.dropzone > .ic{color:var(--orange)}
+.dropzone p{margin:0;flex:1;min-width:160px}
+.filechips{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.filechips li{display:flex;align-items:center;gap:6px;max-width:100%;padding:4px 4px 4px 6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);animation:boq-pop .22s var(--ease) backwards}
+.filechips .fn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.ftag{font:700 10.5px/1 var(--body);letter-spacing:.05em;padding:4px 6px;border-radius:6px;background:var(--idle-bg);color:var(--idle);flex:none}
+.ficonbtn{display:inline-grid;place-items:center;width:30px;height:30px;min-height:0;padding:0;border:none;background:none;box-shadow:none;color:var(--muted);border-radius:8px}
+.ficonbtn:hover{background:var(--hover,rgba(0,0,0,.05));color:var(--ink)}
+.ficonbtn.danger:hover{color:var(--bad)}
+.ficonbtn.armed{width:auto;padding:0 10px;background:var(--bad-bg);color:var(--bad);font:600 12px/1 var(--body)}
+.startbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px}
+.startbar .note{margin:0;flex:1;min-width:200px}
+/* progress stepper */
+.stepper{display:flex;flex-direction:column;gap:4px}
+.step{display:flex;align-items:flex-start;gap:12px;padding:10px 4px;animation:boq-rise .28s var(--ease) backwards}
+.step:nth-child(2){animation-delay:40ms}.step:nth-child(3){animation-delay:80ms}.step:nth-child(4){animation-delay:120ms}.step:nth-child(n+5){animation-delay:160ms}
+.step .dot{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--body);background:var(--idle-bg);color:var(--idle);transition:background .2s,color .2s,transform .2s var(--ease)}
+.step.run .dot{background:var(--warn-bg);color:var(--warn)}
+.step.done .dot{background:var(--ok-bg);color:var(--ok);transform:scale(1.04)}
+.step.fail .dot{background:var(--bad-bg);color:var(--bad)}
+.step.wait .lbl2{opacity:.6}
+.lbl2{display:flex;flex-direction:column;gap:2px;min-width:0;padding-top:4px}
+.lbl2 small{color:var(--muted);font-size:12.5px;overflow-wrap:anywhere}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:boq-spin .7s linear infinite}
+@keyframes boq-spin{to{transform:rotate(360deg)}}
+@keyframes boq-rise{from{opacity:0;transform:translateY(6px)}}
+@keyframes boq-pop{from{opacity:0;transform:scale(.96)}}
+/* BOQ page */
+.titleinput{font:700 24px/1.15 var(--display);border:1px solid transparent;background:none;padding:2px 6px;margin-left:-6px;width:100%;border-radius:8px;color:var(--ink)}
+.titleinput:hover:not(:disabled),.titleinput:focus{border-color:var(--line-strong);background:var(--surface)}
+.pills{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.notes-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.notes-list li{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--surface-2)}
+.notes-list li.warn{background:var(--warn-bg);color:var(--warn)}
+.notes-list li .ic{flex:none;margin-top:2px}
+.seg2{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--line);border-radius:11px;background:var(--surface-2)}
+.seg2 button{border:none;background:none;box-shadow:none;padding:7px 11px;font-size:12.5px;color:var(--muted);border-radius:9px;min-height:0}
+.seg2 button[aria-checked="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+table.boq td{vertical-align:top;padding:8px}
+table.boq .secrow td{background:var(--surface-2);padding:9px 10px}
+table.boq .secrow td{display:table-cell}
+table.boq .secrow .num{float:right;font-weight:700;font-variant-numeric:tabular-nums}
+table.boq .addrow td{padding:4px 10px 12px;border-bottom:none}
+table.boq button.link{border:none;background:none;box-shadow:none;padding:4px 0;color:var(--link,var(--navy));font-size:13px;min-height:0}
+.boqrow{animation:boq-rise .24s var(--ease) backwards}
+.boqrow.conf-low{background:color-mix(in srgb,var(--warn-bg) 45%,transparent)}
+table.boq .desc{min-width:220px;width:100%}
+table.boq textarea{width:100%;min-height:36px;resize:vertical;font:inherit;font-size:13.5px;padding:6px 8px;border:1px solid transparent;border-radius:8px;background:none;color:var(--ink);field-sizing:content}
+table.boq textarea:hover,table.boq textarea:focus,table.boq .cell:hover,table.boq .cell:focus,table.boq select.unit:hover{border-color:var(--line-strong);background:var(--surface)}
+table.boq .cell{width:96px;text-align:right;padding:6px 8px;border:1px solid transparent;border-radius:8px;background:none;font-variant-numeric:tabular-nums}
+table.boq .cell.code{width:84px;text-align:left}
+table.boq .cell.sugg{color:var(--orange);font-weight:600}
+table.boq select.unit{width:auto;padding:6px 6px;border:1px solid transparent;border-radius:8px;background:none}
+.desc select.unit{margin-top:4px;font-size:12px;color:var(--muted)}
+.conf{display:inline-block;margin-right:6px;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:600;text-transform:capitalize}
+.conf.medium{background:var(--idle-bg);color:var(--idle)}
+.conf.low{background:var(--warn-bg);color:var(--warn)}
+.suggtag{display:inline-flex;align-items:center;gap:3px;margin-top:4px;padding:2px 3px 2px 7px;border-radius:7px;background:color-mix(in srgb,var(--orange) 12%,transparent);color:var(--orange);font-size:11px;font-weight:600;white-space:nowrap}
+.chipbtn{min-height:0;padding:3px 6px;border:none;border-radius:6px;background:var(--surface);color:var(--orange);font:700 11px/1 var(--body);box-shadow:none}
+.chipbtn:hover{background:var(--orange);color:#fff}
+tr.norate .cell[aria-label="Rate"]{border-color:color-mix(in srgb,var(--warn) 40%,transparent);background:var(--warn-bg)}
+input.pct{width:64px;display:inline-block;margin-left:6px;padding:4px 6px;font-size:13px;text-align:right}
+.cap{text-transform:capitalize}
+.ficonbtn:active,.chipbtn:active,.seg2 button:active{transform:scale(.97)}
+/* phones: each BOQ line becomes a small card (no sideways scrolling) */
+@media (max-width:699px){
+  table.boq,table.boq tbody{display:block}
+  table.boq thead{display:none}
+  table.boq tr{display:block}
+  table.boq td{border:none;padding:0}
+  table.boq .secrow td{display:flex;justify-content:space-between;border-radius:10px;padding:9px 10px;margin-top:6px}
+  table.boq .secrow .num{float:none}
+  table.boq tr.boqrow,table.boq tr.raterow{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:6px 8px;align-items:start;padding:10px 2px;border-bottom:1px solid var(--line)}
+  tr.boqrow > td:nth-child(1){grid-column:1;grid-row:1;padding-top:8px}
+  tr.boqrow > td.desc{grid-column:2 / -1;grid-row:1;min-width:0}
+  tr.boqrow > td:nth-child(3){grid-column:1;grid-row:2}
+  tr.boqrow > td:nth-child(4){grid-column:2;grid-row:2}
+  tr.boqrow > td:nth-child(5){grid-column:3;grid-row:2;text-align:right}
+  tr.boqrow > td:nth-child(7){grid-column:4;grid-row:2}
+  tr.boqrow > td:nth-child(6){grid-column:1 / -1;grid-row:3;text-align:right;font-weight:600}
+  tr.boqrow > td:nth-child(6)::before{content:"Amount  ";font-weight:400;color:var(--muted);font-size:12.5px;white-space:pre}
+  tr.boqrow > td:nth-child(4)::before{content:"Qty";display:block;text-align:right;color:var(--muted);font-size:11px}
+  tr.boqrow > td:nth-child(5)::before{content:"Rate";display:block;color:var(--muted);font-size:11px}
+  table.boq .cell{width:100%}
+  tr.boqrow > td:nth-child(5){display:flex;flex-direction:column;align-items:flex-end;min-width:0}
+  tr.boqrow .suggtag{flex-wrap:wrap;justify-content:flex-end;white-space:normal;max-width:100%}
+  table.boq .desc{min-width:0;width:auto}
+  tr.raterow > td:nth-child(1){grid-column:1;grid-row:1}
+  tr.raterow > td.desc{grid-column:2 / -1;grid-row:1;min-width:0}
+  tr.raterow > td:nth-child(3){grid-column:1;grid-row:2}
+  tr.raterow > td:nth-child(4){grid-column:2 / 4;grid-row:2}
+  tr.raterow > td:nth-child(5){grid-column:4;grid-row:2}
+  table.boq .addrow td{padding:6px 2px 10px}
+}

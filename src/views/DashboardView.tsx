@@ -31,6 +31,7 @@ export default function DashboardView() {
           <QuickLink href="#month/expense" icon="plus" label="Add expense" />
           <QuickLink href="#staff/new" icon="staff" label="Add staff" />
           <QuickLink href="#projects/new" icon="projects" label="New project" />
+          {!d.missing.includes('boqs') && <QuickLink href="#boq/new" icon="ruler" label="New BOQ" />}
           <QuickLink href="#todo" icon="check" label="Add to-do" onClick={e => { e.preventDefault(); document.getElementById('quick-todo')?.focus() }} />
         </>}
         <button type="button" className="quickbtn" onClick={() => import('../lib/pdf').then(m => m.directorPdf(x))}><Icon name="report" /><span>Director’s report</span></button>
