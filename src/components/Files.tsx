@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useData } from '../data/DataContext'
-import { fileSize, fileUrl, openFile, removeFile, shareFile, uploadFile, type PendingFile } from '../lib/files'
+import { fileUrl, openFile, removeFile, shareFile, uploadFile, type PendingFile } from '../lib/files'
 import { niceDate } from '../lib/format'
 import type { FileRow, OwnerType } from '../lib/types'
-import { ConfirmDelete } from './ui'
+import { Icon } from './icons'
 
 /**
  * Scans and photos attached to a record. With one kind it is a compact row
@@ -62,34 +62,34 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
     d.toast('File deleted')
   }
 
+  const when = (f: FileRow) => niceDate(f.created_at.slice(0, 10))
   return (
     <div className={`files${compact ? ' compact' : ''}`}>
       {list.length > 0 ? (
         <ul>
           {list.map(f => (
             <li key={f.id}>
-              <button type="button" className="link plain fname" onClick={() => view(f)} title="Open">
-                <span className="ficon" aria-hidden>{f.mime === 'application/pdf' ? 'PDF' : 'IMG'}</span>
-                <span>{!compact && kinds.length > 1 && <b>{f.kind}: </b>}{f.name}<span className="sub">{fileSize(f.size)} · {niceDate(f.created_at.slice(0, 10))}</span></span>
+              <button type="button" className="fstatus ok" onClick={() => view(f)} title={`Open ${f.name}`} aria-label={`Open ${f.kind} (${f.name})`}>
+                <Icon name="check" size={14} />
+                <span>{compact ? 'Uploaded' : f.kind}</span>
               </button>
+              <span className="fwhen">{when(f)}</span>
               <span className="factions">
-                <button type="button" className="small" onClick={() => view(f, true)}>Download</button>
-                <button type="button" className="small" onClick={() => share(f)}>Share</button>
-                {d.canEdit && <ConfirmDelete onConfirm={() => del(f)} />}
+                <button type="button" className="ficonbtn" onClick={() => view(f, true)} aria-label={`Download ${f.kind}`} title="Download"><Icon name="download" size={16} /></button>
+                <button type="button" className="ficonbtn" onClick={() => share(f)} aria-label={`Share ${f.kind}`} title="Share"><Icon name="share" size={16} /></button>
+                {d.canEdit && <DeleteIcon what={f.kind} onConfirm={() => del(f)} />}
               </span>
             </li>
           ))}
         </ul>
-      ) : !compact && !queue?.length && <p className="note">{empty}</p>}
+      ) : compact ? (!busy && <span className="fstatus na" title="Not uploaded">N/A</span>) : !queue?.length && <p className="note">{empty}</p>}
       {draft && !!queue?.length && (
         <ul>
           {queue.map((p, i) => (
-            <li key={`${p.file.name}-${i}`} className="pending">
-              <span className="fname">
-                <span className="ficon" aria-hidden>{p.file.type === 'application/pdf' ? 'PDF' : 'IMG'}</span>
-                <span>{kinds.length > 1 && <b>{p.kind}: </b>}{p.file.name}<span className="sub">{fileSize(p.file.size)} · uploads when you save</span></span>
-              </span>
-              <span className="factions"><button type="button" className="small" onClick={() => onQueue!(queue.filter((_, j) => j !== i))}>Remove</button></span>
+            <li key={`${p.file.name}-${i}`} className="pending" title={p.file.name}>
+              <span className="fstatus wait"><Icon name="upload" size={14} /><span>{p.kind}</span></span>
+              <span className="fwhen">uploads when you save</span>
+              <span className="factions"><button type="button" className="ficonbtn" onClick={() => onQueue!(queue.filter((_, j) => j !== i))} aria-label={`Remove ${p.kind}`} title="Remove"><Icon name="close" size={16} /></button></span>
             </li>
           ))}
         </ul>
@@ -101,14 +101,24 @@ export default function Files({ ownerType, ownerId, kinds, compact, empty = 'No 
               {kinds.map(k => <option key={k}>{k}</option>)}
             </select>
           )}
-          <button type="button" className="small" disabled={!!busy} onClick={() => input.current?.click()}>
-            {busy || (compact ? `+ Upload ${kinds[0].toLowerCase()}` : draft ? '+ Add file' : '+ Upload file')}
+          <button type="button" className={compact ? 'ficonbtn up' : 'small'} disabled={!!busy} onClick={() => input.current?.click()}
+            aria-label={compact ? `Upload ${kinds[0].toLowerCase()}` : undefined} title={compact ? `Upload ${kinds[0].toLowerCase()}` : undefined}>
+            {compact ? (busy ? '…' : <Icon name="upload" size={16} />) : (busy || (draft ? '+ Add file' : '+ Upload file'))}
           </button>
           <input ref={input} type="file" hidden multiple={!compact || draft} accept="image/*,application/pdf" onChange={e => picked(e.target.files)} />
         </div>
       )}
     </div>
   )
+}
+
+/** A trash icon that needs a second tap to delete. */
+function DeleteIcon({ what, onConfirm }: { what: string; onConfirm: () => void }) {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t) }, [armed])
+  return armed
+    ? <button type="button" className="ficonbtn danger armed" onClick={onConfirm} aria-label={`Confirm delete ${what}`}>Delete?</button>
+    : <button type="button" className="ficonbtn danger" onClick={() => setArmed(true)} aria-label={`Delete ${what}`} title="Delete"><Icon name="trash" size={16} /></button>
 }
 
 /** The person's photo: latest "Profile photo", else latest "Passport photo", else initials. */

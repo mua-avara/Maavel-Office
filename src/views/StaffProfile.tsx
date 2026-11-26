@@ -76,7 +76,7 @@ export default function StaffProfile({ s }: { s: Staff }) {
           <Files ownerType="staff" ownerId={s.id} kinds={['Profile photo', 'Passport photo']} empty="Tap the photo at the top to add a profile picture." />
         </Section>
 
-        <Section title="Documents" intro={isLocal(s) ? 'Maldivian staff usually only need ID and medical.' : 'Expiry dates warn 60 days ahead. Tap a file to open it.'}>
+        <Section title="Documents" intro={isLocal(s) ? 'Maldivian staff usually only need ID and medical.' : 'Expiry dates warn 60 days ahead. Tap Uploaded to open a document.'}>
           <ul className="docrows">
             {DOC_ROWS.map(r => {
               const exp = r.exp ? (s[r.exp] as string | null) : null
