@@ -779,3 +779,10 @@ dialog[open]::backdrop{animation:fade .25s ease}
 .login-logo img{background:none;border-radius:0;padding:0;width:132px;box-shadow:none}
 :root[data-theme="dark"] .login-logo img{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 14px rgba(255,255,255,.18))}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .login-logo img{filter:drop-shadow(0 0 1px rgba(255,255,255,.95)) drop-shadow(0 0 14px rgba(255,255,255,.18))}}
+
+/* sections with two header buttons: buttons drop below the text on phones */
+.sec-head .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:760px){
+  .sec-head:has(.head-actions){flex-direction:column;align-items:stretch}
+  .sec-head .head-actions button{flex:1}
+}

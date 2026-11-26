@@ -6,7 +6,7 @@ import { MONTHS, niceDate, shiftMonth } from '../lib/format'
 import { applyTheme, pref, savedTheme, setPref, type ThemeChoice } from '../lib/theme'
 import { Icon, type IconName } from './icons'
 
-export type View = 'home' | 'month' | 'staff' | 'payroll' | 'estimate' | 'projects' | 'company' | 'team'
+export type View = 'home' | 'month' | 'staff' | 'payroll' | 'estimate' | 'projects' | 'assets' | 'company' | 'team'
 
 const NAV: { group: string; items: { id: View; label: string; icon: IconName }[] }[] = [
   { group: '', items: [{ id: 'home', label: 'Overview', icon: 'home' }] },
@@ -20,7 +20,10 @@ const NAV: { group: string; items: { id: View; label: string; icon: IconName }[]
     { id: 'staff', label: 'Staff & visas', icon: 'staff' },
     { id: 'team', label: 'Team & logins', icon: 'team' },
   ] },
-  { group: 'Company', items: [{ id: 'company', label: 'Licences & documents', icon: 'company' }] },
+  { group: 'Company', items: [
+    { id: 'assets', label: 'Vehicles & equipment', icon: 'truck' },
+    { id: 'company', label: 'Licences & documents', icon: 'company' },
+  ] },
 ]
 const ALL = NAV.flatMap(g => g.items)
 const MOBILE: View[] = ['home', 'month', 'staff', 'projects']
@@ -251,11 +254,12 @@ function Search() {
       ...d.staff.filter(s => has(s.name, s.designation, s.passport_no, s.wp_no, s.visa_no, s.phone, s.country))
         .map(s => ({ href: `#staff/${s.id}`, title: s.name, sub: `Staff · ${[s.designation, s.status === 'Left' ? 'left' : ''].filter(Boolean).join(', ')}`, icon: 'staff' as IconName })),
       ...d.projects.filter(p => has(p.name, p.client, p.location)).map(p => ({ href: `#projects/${p.id}`, title: p.name, sub: `Project · ${p.status}`, icon: 'projects' as IconName })),
+      ...d.assets.filter(a => has(a.name, a.reg_no, a.type, a.make, a.model, a.chassis_no, a.engine_no, a.serial_no)).map(a => ({ href: `#assets/${a.id}`, title: a.name, sub: `${a.kind === 'vehicle' ? 'Vehicle' : 'Machinery'} · ${[a.reg_no, a.type].filter(Boolean).join(', ')}`, icon: 'truck' as IconName })),
       ...d.company_docs.filter(c => has(c.name, c.number, c.issuer, c.category)).map(c => ({ href: '#company', title: c.name, sub: `Company document · ${c.category}`, icon: 'company' as IconName })),
       ...d.bills.filter(b => has(b.name, b.provider, b.account)).map(b => ({ href: '#month', title: b.name, sub: `Bill · ${b.category}`, icon: 'month' as IconName })),
       ...d.tasks.filter(x => !x.done && has(x.title, x.owner)).map(x => ({ href: '#home', title: x.title, sub: 'To-do', icon: 'check' as IconName })),
     ].slice(0, 12)
-  }, [q, d.staff, d.projects, d.company_docs, d.bills, d.tasks])
+  }, [q, d.staff, d.projects, d.assets, d.company_docs, d.bills, d.tasks])
 
   function go(h: Hit) { location.hash = h.href.slice(1); setQ(''); setOpen(false); input.current?.blur() }
 

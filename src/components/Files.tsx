@@ -134,25 +134,25 @@ export function Photo({ ownerType, ownerId, kinds = ['Profile photo', 'Passport 
 }
 
 /** The profile photo with a "change photo" control for editors. */
-export function EditablePhoto({ ownerId, name }: { ownerId: string; name: string }) {
+export function EditablePhoto({ ownerId, name, ownerType = 'staff', kind = 'Profile photo', kinds }: { ownerId: string; name: string; ownerType?: OwnerType; kind?: string; kinds?: string[] }) {
   const d = useData()
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
-  if (!d.canEdit || d.missing.includes('files')) return <Photo ownerType="staff" ownerId={ownerId} name={name} />
+  if (!d.canEdit || d.missing.includes('files')) return <Photo ownerType={ownerType} ownerId={ownerId} name={name} kinds={kinds} />
   async function picked(file: File | undefined) {
     if (!file) return
     if (!file.type.startsWith('image/')) { d.toast('Choose a photo (JPG or PNG).'); return }
     setBusy(true)
-    const err = await uploadFile('staff', ownerId, 'Profile photo', file)
+    const err = await uploadFile(ownerType, ownerId, kind, file)
     await d.reload('files')
     setBusy(false)
     if (input.current) input.current.value = ''
-    d.toast(err ?? 'Profile photo updated')
+    d.toast(err ?? 'Photo updated')
   }
   return (
     <>
       <button type="button" className={`photo-edit${busy ? ' busy' : ''}`} onClick={() => input.current?.click()} aria-label={`Change profile photo for ${name}`} title="Change photo">
-        <Photo ownerType="staff" ownerId={ownerId} name={name} />
+        <Photo ownerType={ownerType} ownerId={ownerId} name={name} kinds={kinds} />
         <span className="photo-cam" aria-hidden>{busy ? 'Uploading…' : 'Change'}</span>
       </button>
       <input ref={input} type="file" hidden accept="image/*" onChange={e => picked(e.target.files?.[0])} />

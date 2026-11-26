@@ -8,6 +8,7 @@ Staff, payroll, bills and overhead estimates for **Maavel Maldives Pvt Ltd**, wi
 - **Payroll**: built from the staff list each month, overtime and deductions, salary sheet PDF
 - **Estimate**: next month's overheads plus any extra items, as a PDF to share with the team
 - **Projects**: construction projects and sites: expenses and staff salaries per project, budget used, files, and a cost report PDF
+- **Vehicles & equipment**: cars, pickups, bikes, boats, site vehicles and machinery with registry details, annual fee, insurance and road worthiness (survey / inspection) renewals, papers, photos and the site each is on
 - **Company**: business registration, permits, GST, leases, insurance, vehicles and quota approvals with expiry dates, renewal fees and scans
 - **Team**: add logins for partners and staff, reset passwords, remove access, and choose admin, editor or viewer
 

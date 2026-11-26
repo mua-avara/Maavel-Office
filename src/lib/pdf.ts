@@ -168,6 +168,10 @@ export async function directorPdf(x: Dashboard) {
     section(p, 'Company licences and documents')
     table(p, { head: [['Document', 'Number', 'Expires', 'Status', 'Fee']], body: x.companyDocs.map(c => [c.doc.name, c.doc.number, c.doc.expiry_date ? niceDate(c.doc.expiry_date) : 'Does not expire', c.doc.expiry_date ? (c.level === 'ok' ? 'OK' : c.text) : '', c.doc.renewal_cost ? fmt0(c.doc.renewal_cost) : '']), columnStyles: { 4: { halign: 'right' } } })
   }
+  if (x.assetDue.length) {
+    section(p, 'Vehicles & equipment renewals (next 90 days)')
+    table(p, { head: [['Vehicle / machine', 'Reg. no.', 'Renewal', 'Due', 'Status']], body: x.assetDue.map(r => [r.asset.name, r.asset.reg_no, r.label, niceDate(r.date), r.level === 'ok' ? 'OK' : r.text]), headStyles: { ...head, fillColor: ORANGE } })
+  }
   if (x.open.length) {
     section(p, 'Open to-dos')
     table(p, { head: [['To-do', 'For', 'Due', 'Priority']], body: x.open.map(t => [t.title, t.owner, t.due_date ? niceDate(t.due_date) : '', t.priority]) })

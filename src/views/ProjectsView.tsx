@@ -122,6 +122,7 @@ function Progress({ pct }: { pct: number }) {
 function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeof projectCost>; onEdit: () => void; dialog: ReactNode }) {
   const d = useData()
   const team = d.staff.filter(s => isActive(s) && s.project_id === p.id).sort(byOrder)
+  const fleet = d.assets.filter(a => a.project_id === p.id && a.status !== 'Sold').sort((a, b) => a.name.localeCompare(b.name))
   const max = Math.max(1, ...c.months.map(m => m[1] + m[2]))
 
   return (
@@ -164,10 +165,16 @@ function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeo
             <dl className="facts">{c.byCategory.map(([k, v]) => <Fragment key={k}><dt>{k}</dt><dd>{fmt0(v)}</dd></Fragment>)}</dl>
           </>}
         </Section>
-        <Section title="Staff on this site" intro="Change someone’s site from their profile (Edit details).">
+        <Section title="On this site" intro="Staff and vehicles or machines assigned to this project. Change it from their own page (Edit details).">
           {!team.length ? <p className="empty">Nobody assigned yet.</p> : team.map(s => (
             <div className="kv" key={s.id}><a className="plain" href={`#staff/${s.id}`}>{s.name}<span className="sub">{s.designation}</span></a><span>{fmt0(num(s.basic) + num(s.food) + num(s.allowance))}</span></div>
           ))}
+          {!d.missing.includes('assets') && <>
+            <h3 className="mini">Vehicles &amp; equipment</h3>
+            {!fleet.length ? <p className="empty">None on this site. Set the site on a vehicle or machine to list it here.</p> : fleet.map(a => (
+              <div className="kv" key={a.id}><a className="plain" href={`#assets/${a.id}`}>{a.name}<span className="sub">{[a.reg_no, a.type].filter(Boolean).join(' · ')}</span></a><span className="cat">{a.status}</span></div>
+            ))}
+          </>}
         </Section>
       </div>
 

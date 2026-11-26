@@ -9,14 +9,15 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - PDFs: jsPDF + jspdf-autotable, loaded lazily from `src/lib/pdf.ts`.
 
 ## Where things are
-- `src/App.tsx` sign-in gate and routing (hash routes `#home #month #staff #payroll #estimate #projects #company #team` (`#home` = director dashboard, the default); `#staff/<id>` and `#projects/<id>` open a profile or project page; `#staff/new`, `#projects/new`, `#month/expense` open the add form once (Overview quick actions))
+- `src/App.tsx` sign-in gate and routing (hash routes `#home #month #staff #payroll #estimate #projects #assets #company #team` (`#home` = director dashboard, the default); `#staff/<id>`, `#projects/<id>` and `#assets/<id>` open a profile, project or vehicle page; `#staff/new`, `#projects/new`, `#assets/new-vehicle`, `#assets/new-machine`, `#month/expense` open the add form once (Overview quick actions))
 - `src/components/Shell.tsx` layout: collapsible left sidebar (phone: slide-out drawer + bottom bar), top bar with month picker, search (`/`), notifications (dashboard alerts, read state per device) and light/dark switch (`src/lib/theme.ts`, saved in localStorage); `src/components/icons.tsx` inline SVG icons
 - `src/data/DataContext.tsx` loads every table, subscribes to realtime, `upsert`/`remove`/`toast`
 - `src/lib/calc.ts` business rules: payroll lines and totals, bill status, document expiry alerts, overhead estimate
 - `src/lib/types.ts` row types (snake_case, same as the database), categories, payment methods
 - `src/lib/dashboard.ts` director dashboard: alerts, next-30-days list, 12-month trend, renewals (staff and company documents warn at 60 days, urgent at 30)
 - `src/views/*` one file per tab; `src/components/ui.tsx` shared Modal, Tile, Pill, Section
-- `company_docs`, `tasks`, `files`, `leaves` and `projects` tables are optional in the app (`OPTIONAL` in DataContext): if the SQL hasn't been run, those sections show a setup note instead of failing. New staff/payment columns are only written when `projects` exists.
+- Vehicles & equipment: `assets` table (kind vehicle/machinery, registry fields, `annual_fee_due`, `insurance_exp`, `roadworthy_exp` labelled Road worthiness / Survey (vessels) / Inspection (machinery) via `src/lib/assets.ts`, optional `project_id`); `src/views/AssetsView.tsx`; renewals feed dashboard alerts, Next 30 days and the director PDF.
+- `company_docs`, `tasks`, `files`, `leaves`, `projects` and `assets` tables are optional in the app (`OPTIONAL` in DataContext): if the SQL hasn't been run, those sections show a setup note instead of failing. New staff/payment columns are only written when `projects` exists.
 - Files: private Storage bucket `files`, path `owner_type/owner_id/uuid-name`, a row in `files` per upload. `src/lib/files.ts` (upload with image shrinking, signed URLs, delete), `src/components/Files.tsx` (list/upload UI, `Photo`). Deleting a staff member, company doc or project also deletes its files.
 - Logins: `supabase/functions/admin-users` Edge Function (create/set_password/remove, admin only), called from `src/lib/admin.ts` on the Team tab. Deployed by pasting into the Supabase dashboard.
 - Projects: `src/lib/projects.ts` `projectCost` = payments with `project_id` + paid payroll lines with `projectId` (copied from `staff.project_id` when a sheet is built).

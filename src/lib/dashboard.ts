@@ -1,7 +1,8 @@
-import { DOCS, type Bill, type CompanyDoc, type EstimateItem, type Leave, type Payment, type PayrollMonth, type Project, type Staff, type Task } from './types'
+import { DOCS, type Asset, type Bill, type CompanyDoc, type EstimateItem, type Leave, type Payment, type PayrollMonth, type Project, type Staff, type Task } from './types'
 import { daysFromToday, monthName, num, shiftMonth, thisMonth, todayStr } from './format'
 import { estimate, isActive, isLocal, monthSummary, onLeaveOn, payrollInfo } from './calc'
 import { projectCost, projectSpendIn } from './projects'
+import { assetDocs } from './assets'
 
 /** How urgent something is: bad = act now, warn = soon, ok = fine. */
 export type Level = 'bad' | 'warn' | 'ok'
@@ -20,12 +21,12 @@ export function expiryLevel(date: string | null): { level: Level | 'none'; days:
 export const LEVEL_PILL: Record<Level | 'none', string> = { bad: 'overdue', warn: 'soon', ok: 'paid', none: 'upcoming' }
 
 export type Alert = { level: Level; title: string; detail: string; href: string; date?: string }
-export type Upcoming = { date: string; kind: 'Bill' | 'Staff document' | 'Company document' | 'To-do' | 'Leave'; title: string; detail: string; href: string; amount?: number }
+export type Upcoming = { date: string; kind: 'Bill' | 'Staff document' | 'Company document' | 'Vehicle & equipment' | 'To-do' | 'Leave'; title: string; detail: string; href: string; amount?: number }
 
 type Input = {
   staff: Staff[]; bills: Bill[]; payments: Payment[]; payroll_months: PayrollMonth[]
   estimate_items: EstimateItem[]; company_docs: CompanyDoc[]; tasks: Task[]
-  leaves: Leave[]; projects: Project[]
+  leaves: Leave[]; projects: Project[]; assets?: Asset[]
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`
@@ -101,6 +102,12 @@ export function dashboard(d: Input) {
   const companyDue = companyDocs.filter(c => c.days != null && c.days <= 90)
   const renewalCost90 = companyDue.reduce((a, c) => a + num(c.doc.renewal_cost), 0)
 
+  /* ---- vehicles & equipment ---- */
+  const assetPapers = (d.assets ?? []).filter(a => a.status !== 'Sold')
+    .flatMap(a => assetDocs(a).filter(x => x.date).map(x => ({ asset: a, ...x })))
+    .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))
+  const assetDue = assetPapers.filter(x => x.days != null && x.days <= 90)
+
   /* ---- projects ---- */
   const projects = d.projects.filter(p => p.status === 'Active').map(p => {
     const c = projectCost(p, d.payments, d.payroll_months)
@@ -130,6 +137,10 @@ export function dashboard(d: Input) {
   const cBad = companyDocs.filter(c => c.level === 'bad'), cWarn = companyDocs.filter(c => c.level === 'warn')
   if (cBad.length) alerts.push({ level: 'bad', title: `${plural(cBad.length, 'company licence or document', 'company licences or documents')}: expired or due within 30 days`, detail: cBad.map(c => c.doc.name).join(', '), href: '#company' })
   if (cWarn.length) alerts.push({ level: 'warn', title: `${plural(cWarn.length, 'company licence or document', 'company licences or documents')}: due in 31–60 days`, detail: cWarn.map(c => c.doc.name).join(', '), href: '#company' })
+  const aBad = assetPapers.filter(x => x.level === 'bad'), aWarn = assetPapers.filter(x => x.level === 'warn')
+  const aDetail = (l: typeof assetPapers) => l.map(x => `${x.asset.name}${x.asset.reg_no ? ` ${x.asset.reg_no}` : ''} (${x.label.toLowerCase()})`).join(', ')
+  if (aBad.length) alerts.push({ level: 'bad', title: `${plural(aBad.length, 'vehicle or equipment renewal', 'vehicle and equipment renewals')}: expired or due within 30 days`, detail: aDetail(aBad), href: '#assets' })
+  if (aWarn.length) alerts.push({ level: 'warn', title: `${plural(aWarn.length, 'vehicle or equipment renewal', 'vehicle and equipment renewals')} due in 31–60 days`, detail: aDetail(aWarn), href: '#assets' })
   if (overdueTasks.length) alerts.push({ level: 'bad', title: `${plural(overdueTasks.length, 'to-do')} overdue`, detail: overdueTasks.map(t => t.title).join(', '), href: '#home' })
   if (missingDates.length) alerts.push({ level: 'warn', title: `${plural(missingDates.length, 'expat')} without passport, work permit or visa dates`, detail: 'Add the dates so renewals are not missed: ' + missingDates.map(s => s.name).join(', '), href: '#staff' })
   alerts.sort((a, b) => (a.level === b.level ? 0 : a.level === 'bad' ? -1 : 1))
@@ -147,13 +158,14 @@ export function dashboard(d: Input) {
     if (p && isActive(p)) upcoming.push({ date: l.start_date, kind: 'Leave', title: `${p.name}: ${l.type.toLowerCase()} leave`, detail: `${l.days} day${l.days === 1 ? '' : 's'}`, href: `#staff/${p.id}` })
   })
   companyDocs.filter(c => c.doc.expiry_date && in30(c.doc.expiry_date)).forEach(c => upcoming.push({ date: c.doc.expiry_date!, kind: 'Company document', title: c.doc.name, detail: c.doc.issuer || c.doc.category, href: '#company', amount: c.doc.renewal_cost ?? undefined }))
+  assetPapers.filter(x => x.date && in30(x.date)).forEach(x => upcoming.push({ date: x.date!, kind: 'Vehicle & equipment', title: `${x.asset.name}: ${x.label.toLowerCase()}`, detail: [x.asset.reg_no, x.asset.type].filter(Boolean).join(' · '), href: `#assets/${x.asset.id}`, amount: x.key === 'annual_fee_due' && x.asset.annual_fee ? x.asset.annual_fee : undefined }))
   open.filter(t => t.due_date && in30(t.due_date)).forEach(t => upcoming.push({ date: t.due_date!, kind: 'To-do', title: t.title, detail: t.owner ? `For ${t.owner}` : `${t.priority} priority`, href: '#home' }))
   upcoming.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind))
 
   return {
     k, prevK, nextK, cur, prev, next, trend, avg3, ytdRows, ytdTotal, year,
     active, expats, byCountry, byRole, onLeave, leaveUntil, projects, joined, left, staffMonthly, staffBasic, staffDocs, missingDates,
-    companyDocs, companyDue, renewalCost90, open, overdueTasks, alerts, upcoming,
+    companyDocs, companyDue, renewalCost90, assetPapers, assetDue, open, overdueTasks, alerts, upcoming,
   }
 }
 export type Dashboard = ReturnType<typeof dashboard>

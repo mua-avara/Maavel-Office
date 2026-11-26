@@ -306,3 +306,47 @@ grant select, insert, update, delete on all tables in schema public to service_r
 alter table public.bills add column if not exists pay_name text default '';
 alter table public.bills add column if not exists pay_account text default '';
 alter table public.bills add column if not exists pay_bank text default '';
+
+-- ---------- Vehicles & equipment register (added Nov 2026) ----------
+-- Self-contained and safe to re-run: paste just this section into the SQL Editor.
+create table if not exists public.assets (
+  id text primary key default gen_random_uuid()::text,
+  kind text not null default 'vehicle' check (kind in ('vehicle','machinery')),
+  type text not null default 'Other',
+  name text not null,
+  reg_no text default '',
+  make text default '',
+  model text default '',
+  year int,
+  colour text default '',
+  chassis_no text default '',
+  engine_no text default '',
+  serial_no text default '',
+  registered_owner text default '',
+  status text not null default 'In use' check (status in ('In use','Idle','Under repair','Sold')),
+  project_id text references public.projects(id) on delete set null,
+  purchase_date date,
+  purchase_price numeric,
+  annual_fee_due date,
+  annual_fee numeric,
+  insurance_exp date,
+  insurance_provider text default '',
+  policy_no text default '',
+  roadworthy_exp date,
+  notes text default '',
+  created_at timestamptz not null default now()
+);
+alter table public.assets enable row level security;
+drop policy if exists "assets read" on public.assets;
+create policy "assets read" on public.assets for select to authenticated using (public.my_role() is not null);
+drop policy if exists "assets write" on public.assets;
+create policy "assets write" on public.assets for all to authenticated using (public.my_role() in ('admin','editor')) with check (public.my_role() in ('admin','editor'));
+grant select, insert, update, delete on public.assets to authenticated;
+grant select, insert, update, delete on public.assets to service_role;
+do $$ begin
+  alter publication supabase_realtime add table public.assets;
+exception when duplicate_object then null; end $$;
+
+-- Files can now belong to a vehicle or machine too.
+alter table public.files drop constraint if exists files_owner_type_check;
+alter table public.files add constraint files_owner_type_check check (owner_type in ('staff','company_doc','project','asset'));

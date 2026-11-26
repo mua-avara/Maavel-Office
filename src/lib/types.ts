@@ -125,7 +125,7 @@ export interface Task {
   created_at?: string
 }
 
-export type OwnerType = 'staff' | 'company_doc' | 'project'
+export type OwnerType = 'staff' | 'company_doc' | 'project' | 'asset'
 
 export interface FileRow {
   id: string
@@ -171,6 +171,42 @@ export interface Project {
   budget: number | null
   notes: string
 }
+
+export type AssetKind = 'vehicle' | 'machinery'
+export type AssetStatus = 'In use' | 'Idle' | 'Under repair' | 'Sold'
+
+export interface Asset {
+  id: string
+  kind: AssetKind
+  type: string
+  name: string
+  reg_no: string
+  make: string
+  model: string
+  year: number | null
+  colour: string
+  chassis_no: string
+  engine_no: string
+  serial_no: string
+  registered_owner: string
+  status: AssetStatus
+  project_id: string | null
+  purchase_date: string | null
+  purchase_price: number | null
+  annual_fee_due: string | null
+  annual_fee: number | null
+  insurance_exp: string | null
+  insurance_provider: string
+  policy_no: string
+  roadworthy_exp: string | null
+  notes: string
+}
+
+export const VEHICLE_TYPES = ['Car', 'Pickup', 'Van', 'Lorry', 'Tipper', 'Motorcycle', 'Forklift', 'Dhoni', 'Launch', 'Speedboat', 'Barge', 'Other'] as const
+export const VESSEL_TYPES = ['Dhoni', 'Launch', 'Speedboat', 'Barge']
+export const MACHINE_TYPES = ['Excavator', 'Crane', 'Concrete mixer', 'Generator', 'Compressor', 'Roller', 'Welding machine', 'Scaffolding set', 'Other'] as const
+export const ASSET_STATUSES: AssetStatus[] = ['In use', 'Idle', 'Under repair', 'Sold']
+export const ASSET_FILE_KINDS = ['Photo', 'Registration', 'Insurance', 'Road worthiness', 'Annual fee receipt', 'Other'] as const
 
 export const DOC_CATEGORIES = [
   'Registration & licence', 'Tax (MIRA)', 'Lease & rent agreement', 'Insurance', 'Vehicle & vessel',
