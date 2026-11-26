@@ -1,7 +1,7 @@
 import { supabase } from './supabase'
 
 /** Documents the "scan-document" function knows how to read. */
-export type ScanType = 'passport' | 'evisa' | 'medical' | 'vehicle_registration' | 'insurance' | 'road_worthiness' | 'annual_fee' | 'licence'
+export type ScanType = 'national_id' | 'passport' | 'evisa' | 'medical' | 'vehicle_registration' | 'insurance' | 'road_worthiness' | 'annual_fee' | 'licence'
 export type ScanFields = Record<string, string | number | null>
 export type ScanResult = { ok: true; fields: ScanFields; found: number } | { ok: false; error: string }
 

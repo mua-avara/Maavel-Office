@@ -88,7 +88,7 @@ export function dashboard(d: Input) {
   const staffBasic = active.reduce((a, s) => a + num(s.basic), 0)
 
   // Every staff document that is expired or expires within 90 days.
-  const staffDocs = active.flatMap(s => DOCS.map(([f, label]) => {
+  const staffDocs = expats.flatMap(s => DOCS.map(([f, label]) => {
     const date = s[f] as string | null
     return { staff: s, doc: label, date, ...expiryLevel(date) }
   })).filter(x => x.date && (x.days ?? 999) <= 90)

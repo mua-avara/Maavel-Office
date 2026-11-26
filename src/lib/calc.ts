@@ -5,6 +5,8 @@ import { daysFromToday, lastDay, monthEnd, num, pad, parseDate, shiftMonth, this
 export type DocState = { key: 'paid' | 'soon' | 'overdue' | 'upcoming'; text: string; need: boolean; hasDates: boolean }
 
 export function docState(s: Staff): DocState {
+  // Locals (Maldivians) keep only a national ID with no tracked expiry: nothing to renew.
+  if (isLocal(s)) return { key: 'paid', text: 'Local', need: false, hasDates: false }
   let worst: { days: number; label: string } | null = null
   for (const [field, label] of DOCS) {
     const v = s[field] as string | null
@@ -123,7 +125,7 @@ export function estimate(k: string, staff: Staff[], bills: Bill[], payments: Pay
   const contAmt = sub * Math.max(0, opts.contingency) / 100
   const end = monthEnd(k)
   const renew: { name: string; doc: string; date: string }[] = []
-  staff.filter(isActive).forEach(s => DOCS.forEach(([f, label]) => {
+  staff.filter(s => isActive(s) && !isLocal(s)).forEach(s => DOCS.forEach(([f, label]) => {
     const v = s[f] as string | null
     if (v && v <= end) renew.push({ name: s.name, doc: label, date: v })
   }))

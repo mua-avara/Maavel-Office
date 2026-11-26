@@ -35,6 +35,11 @@ const DOCS: Record<string, { label: string; schema: object; hint: string }> = {
     schema: obj({ full_name: text, passport_no: text, nationality: text, date_of_birth: date, issue_date: date, expiry_date: date }),
     hint: 'Prefer the machine-readable zone (the two lines of <<< at the bottom) for the passport number and dates, and check them against the printed fields. full_name is given names then surname, in normal capitalisation. nationality is the country name in English (e.g. "Bangladesh", not "BGD").',
   },
+  national_id: {
+    label: 'Maldives national identity card (front or back)',
+    schema: obj({ full_name: text, id_no: text, date_of_birth: date, expiry_date: date }),
+    hint: 'id_no is the ID card number, a letter followed by digits such as "A123456"; copy it with no spaces. full_name is the name in English (Latin letters), not the Dhivehi (Thaana) name, in normal capitalisation. expiry_date is the date of expiry printed on the card.',
+  },
   evisa: {
     label: 'Maldives e-visa / work visa',
     schema: obj({ visa_no: text, holder_name: text, passport_no: text, nationality: text, employer: text, issue_date: date, expiry_date: date }),

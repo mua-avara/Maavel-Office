@@ -54,7 +54,7 @@ export default function StaffView({ id }: { id: string | null }) {
       <Section title="Staff" intro="Tap a person to see their profile: documents and scans, pay history and leave."
         action={<button className="primary" disabled={!d.canEdit} onClick={() => setEdit('new')}>Add staff</button>}>
         <div className="toolbar">
-          <Field label="Search"><input value={q} placeholder="Name, job or passport no." onChange={e => setQ(e.target.value)} /></Field>
+          <Field label="Search"><input value={q} placeholder="Name, job, passport or ID no." onChange={e => setQ(e.target.value)} /></Field>
           <Field label="Show"><select value={filter} onChange={e => setFilter(e.target.value as Filter)}>
             <option value="Active">Active staff</option><option value="docs">Documents to renew</option><option value="Left">Left Maavel</option><option value="all">Everyone</option>
           </select></Field>
@@ -67,7 +67,7 @@ export default function StaffView({ id }: { id: string | null }) {
               return (
                 <tr key={s.id} className="clickable" onClick={() => open(s)}>
                   <td className="name"><div className="who-row"><Photo ownerType="staff" ownerId={s.id} name={s.name} small /><div><a className="link plain" href={`#staff/${s.id}`} onClick={e => e.stopPropagation()}>{s.name}</a><span className="sub">{[s.designation, s.status === 'On leave' ? 'on leave' : '', files(s) ? `${files(s)} file${files(s) === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · ')}</span></div></div></td>
-                  <td>{!isActive(s) ? <Pill kind="left">Left{s.left_date ? ` ${niceDate(s.left_date)}` : ''}</Pill> : isLocal(s) && !ds.hasDates ? <span className="sub">–</span> : <Pill kind={ds.key}>{ds.text}</Pill>}</td>
+                  <td>{!isActive(s) ? <Pill kind="left">Left{s.left_date ? ` ${niceDate(s.left_date)}` : ''}</Pill> : isLocal(s) ? <span className="sub">Local · {s.passport_no || 'no ID no.'}</span> : <Pill kind={ds.key}>{ds.text}</Pill>}</td>
                   <td className="num">{fmt0(s.basic)}</td>
                   <td className="num hide-sm">{fmt0(Number(s.food) + Number(s.allowance))}</td>
                   <td className="hide-sm cat">{s.country}</td>
@@ -116,7 +116,10 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
   function scanned(type: ScanType, x: ScanFields, file: File) {
     const next: Partial<Form> = {}
     const put = (k: keyof Form, v: string | null, onlyIfEmpty = false) => { if (v && !(onlyIfEmpty && f[k])) next[k] = v as never }
-    if (type === 'passport') {
+    if (type === 'national_id') {
+      put('name', str(x.full_name) && titleCase(str(x.full_name)!), true)
+      put('passport_no', str(x.id_no)?.replace(/\s+/g, '').toUpperCase() ?? null)
+    } else if (type === 'passport') {
       put('name', str(x.full_name) && titleCase(str(x.full_name)!), true)
       put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null)
       put('passport_exp', isoDate(x.expiry_date))
@@ -138,7 +141,7 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
     if (keys.length) {
       setF(cur => ({ ...cur, ...next }))
       setHl(cur => new Set([...cur, ...keys]))
-      const kind = type === 'passport' ? 'Passport copy' : type === 'evisa' ? 'E-visa' : type === 'medical' ? 'Medical' : 'Insurance'
+      const kind = type === 'national_id' ? 'National ID' : type === 'passport' ? 'Passport copy' : type === 'evisa' ? 'E-visa' : type === 'medical' ? 'Medical' : 'Insurance'
       setQueue(q => [...q, { kind, file }])
     }
     return keys.length
@@ -182,6 +185,7 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
           </div>
           {!f.origin && <span className="sub">Choose one to continue.</span>}
         </div>
+        {local && <ScanToFill options={[{ type: 'national_id', label: 'National ID card' }]} onResult={scanned} />}
         {f.origin === 'expat' && <ScanToFill options={[
           { type: 'passport', label: 'Passport' },
           ...(upgraded ? [{ type: 'evisa' as const, label: 'E-visa' }] : []),
