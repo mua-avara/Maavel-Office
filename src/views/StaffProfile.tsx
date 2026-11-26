@@ -9,7 +9,9 @@ import Files, { EditablePhoto } from '../components/Files'
 import { StaffDialog } from './StaffView'
 
 /** Each document row: the expiry/number fields on the staff record and the file kind for its scans. */
-const DOC_ROWS: { label: string; kind: string; no?: keyof Staff; exp?: keyof Staff }[] = [
+type DocRow = { label: string; kind: string; no?: keyof Staff; exp?: keyof Staff }
+const LOCAL_ROWS: DocRow[] = [{ label: 'National ID', kind: 'National ID', no: 'passport_no' }]
+const DOC_ROWS: DocRow[] = [
   { label: 'Passport', kind: 'Passport copy', no: 'passport_no', exp: 'passport_exp' },
   { label: 'E-visa', kind: 'E-visa', no: 'visa_no', exp: 'visa_exp' },
   { label: 'Medical', kind: 'Medical', exp: 'medical_exp' },
@@ -18,6 +20,7 @@ const DOC_ROWS: { label: string; kind: string; no?: keyof Staff; exp?: keyof Sta
 
 export default function StaffProfile({ s }: { s: Staff }) {
   const d = useData()
+  const local = isLocal(s)
   const [editing, setEditing] = useState(false)
   const [leave, setLeave] = useState<Leave | null>(null)
   const year = todayStr.slice(0, 4)
@@ -73,12 +76,12 @@ export default function StaffProfile({ s }: { s: Staff }) {
           </dl>
           {s.notes && <p className="note">{s.notes}</p>}
           <h3 className="mini">Photos</h3>
-          <Files ownerType="staff" ownerId={s.id} kinds={['Profile photo', 'Passport photo']} empty="Tap the photo at the top to add a profile picture." />
+          <Files ownerType="staff" ownerId={s.id} kinds={local ? ['Profile photo'] : ['Profile photo', 'Passport photo']} empty="Tap the photo at the top to add a profile picture." />
         </Section>
 
-        <Section title="Documents" intro={isLocal(s) ? 'Maldivian staff usually only need ID and medical.' : 'Expiry dates warn 60 days ahead. Tap Uploaded to open a document.'}>
+        <Section title="Documents" intro={local ? 'Local (Maldivian) staff: only the national ID card is kept.' : 'Expiry dates warn 60 days ahead. Tap Uploaded to open a document.'}>
           <ul className="docrows">
-            {DOC_ROWS.map(r => {
+            {(local ? LOCAL_ROWS : DOC_ROWS).map(r => {
               const exp = r.exp ? (s[r.exp] as string | null) : null
               const e = expiryLevel(exp)
               const no = r.no ? (s[r.no] as string | undefined) : ''
@@ -86,7 +89,7 @@ export default function StaffProfile({ s }: { s: Staff }) {
                 <li key={r.label}>
                   <div className="dochead">
                     <b>{r.label}</b>
-                    <span className="sub">{[no, exp ? `expires ${niceDate(exp)}` : 'no expiry date'].filter(Boolean).join(' · ')}</span>
+                    <span className="sub">{[no, r.exp && (exp ? `expires ${niceDate(exp)}` : 'no expiry date')].filter(Boolean).join(' · ') || 'No number yet'}</span>
                     {exp && <Pill kind={LEVEL_PILL[e.level]}>{e.level === 'ok' ? 'OK' : e.text}</Pill>}
                   </div>
                   <Files ownerType="staff" ownerId={s.id} kinds={[r.kind]} compact />
@@ -94,8 +97,10 @@ export default function StaffProfile({ s }: { s: Staff }) {
               )
             })}
           </ul>
-          <h3 className="mini">Other documents</h3>
-          <Files ownerType="staff" ownerId={s.id} kinds={['Contract', 'Other']} empty="Contracts, certificates, letters…" />
+          {!local && <>
+            <h3 className="mini">Other documents</h3>
+            <Files ownerType="staff" ownerId={s.id} kinds={['Contract', 'Other']} empty="Contracts, certificates, letters…" />
+          </>}
         </Section>
       </div>
 

@@ -140,7 +140,10 @@ export interface FileRow {
   created_at: string
 }
 
-export const STAFF_FILE_KINDS = ['Profile photo', 'Passport photo', 'Passport copy', 'E-visa', 'Medical', 'Insurance', 'Contract', 'Other'] as const
+export const STAFF_FILE_KINDS = ['Profile photo', 'Passport photo', 'Passport copy', 'E-visa', 'Medical', 'Insurance', 'Contract', 'Other', 'National ID'] as const
+/** Maldivian (local) staff keep only their national ID card; expats keep passport, e-visa, medical and insurance. */
+export const LOCAL_FILE_KINDS = ['Profile photo', 'National ID'] as const
+export const EXPAT_FILE_KINDS = STAFF_FILE_KINDS.filter(k => k !== 'National ID')
 export const COMPANY_FILE_KINDS = ['Certificate / licence', 'Receipt', 'Letter', 'Other'] as const
 export const PROJECT_FILE_KINDS = ['Contract', 'Drawing', 'Quotation', 'Invoice', 'Photo', 'Other'] as const
 

@@ -32,6 +32,7 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 - Expat staff get MVR 1,200/month food allowance (MVR 1,000 in a part first month). Ali Waheed: MVR 3,000 food + MVR 600 phone allowance. Maavel currently pays no pension.
 - Payroll net = basic + extra − deductions + food + allowance. A month either has per-person `lines` (built in the app) or only totals (history imported from salary sheets, Jan–Oct 2026).
 - Staff who leave are set to status `Left` with a `left_date`, not deleted, so history stays.
+- Staff are Local (Maldivian, `country` = 'Maldives', `isLocal`) or Expatriate, chosen first in the staff form (required). Locals keep only a national ID: number in `passport_no`, file kind 'National ID' (`LOCAL_FILE_KINDS`); their passport/visa/medical/insurance dates are cleared on save. Expats keep passport, e-visa, medical, insurance (`EXPAT_FILE_KINDS`).
 - Leave: 30 days annual (per staff `annual_leave_days`) and 15 days sick a year, counted per calendar year; days default to calendar days and can be edited.
 - Estimate = active staff pay and allowances + active bills (fixed amount or 3-month average) + that month's `estimate_items` + optional 3-month average of other expenses + optional contingency %.
 - Roles: admin (everything incl. roles), editor (data), viewer (read + PDFs). Enforced by RLS in `schema.sql`; the UI only mirrors it. First person to sign in becomes admin.

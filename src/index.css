@@ -918,3 +918,10 @@ input.pct{width:64px;display:inline-block;margin-left:6px;padding:4px 6px;font-s
   tr.raterow > td:nth-child(5){grid-column:4;grid-row:2}
   table.boq .addrow td{padding:6px 2px 10px}
 }
+
+/* staff form: Local / Expatriate choice */
+.originpick{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.originpick .lbl{font-weight:600;font-size:13px}
+.originpick .seg2 button{font-size:13.5px;padding:9px 14px}
+.originpick .seg2 button[aria-checked="true"]{background:var(--btn);color:var(--btn-ink)}
+.originpick .sub{flex-basis:100%}

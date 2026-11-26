@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useData } from '../data/DataContext'
 import { byOrder, docState, isActive, isLocal } from '../lib/calc'
 import { fmt0, niceDate, todayStr } from '../lib/format'
-import { STAFF_FILE_KINDS, type Staff, type StaffStatus } from '../lib/types'
+import { EXPAT_FILE_KINDS, LOCAL_FILE_KINDS, type Staff, type StaffStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import Files, { Photo } from '../components/Files'
@@ -82,7 +82,7 @@ export default function StaffView({ id }: { id: string | null }) {
   )
 }
 
-const blank = { name: '', designation: '', country: '', status: 'Active' as StaffStatus, basic: '', food: '1200', allowance: '0', join_date: '', left_date: '', phone: '', passport_no: '', passport_exp: '', wp_no: '', wp_exp: '', visa_no: '', visa_exp: '', medical_exp: '', insurance_exp: '', notes: '', emergency_contact: '', annual_leave_days: '30', project_id: '' }
+const blank = { origin: '' as '' | 'local' | 'expat', name: '', designation: '', country: '', status: 'Active' as StaffStatus, basic: '', food: '1200', allowance: '0', join_date: '', left_date: '', phone: '', passport_no: '', passport_exp: '', wp_no: '', wp_exp: '', visa_no: '', visa_exp: '', medical_exp: '', insurance_exp: '', notes: '', emergency_contact: '', annual_leave_days: '30', project_id: '' }
 type Form = typeof blank
 
 export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; onClose: () => void }) {
@@ -96,9 +96,20 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
   if (staff !== key) {
     setKey(staff)
     setHl(new Set())
-    if (staff) setF(s ? ({ ...blank, ...Object.fromEntries(Object.keys(blank).filter(k => s[k as keyof Staff] != null).map(k => [k, String(s[k as keyof Staff])])) } as Form) : blank)
+    if (staff) setF(s ? ({ ...blank, ...Object.fromEntries(Object.keys(blank).filter(k => s[k as keyof Staff] != null).map(k => [k, String(s[k as keyof Staff])])), origin: isLocal(s) ? 'local' : s.country.trim() ? 'expat' : '' } as Form) : blank)
   }
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
+  const local = f.origin === 'local'
+  // Choosing Local or Expatriate: locals are Maldivian with no food allowance by default; expats get MVR 1,200 food.
+  function pickOrigin(o: 'local' | 'expat') {
+    setF(cur => ({
+      ...cur, origin: o,
+      country: o === 'local' ? 'Maldives' : cur.country.trim().toLowerCase() === 'maldives' ? '' : cur.country,
+      ...(!s ? { food: o === 'local' ? (cur.food === '1200' ? '0' : cur.food) : (!Number(cur.food) ? '1200' : cur.food) } : {}),
+    }))
+    const keep: readonly string[] = o === 'local' ? LOCAL_FILE_KINDS : EXPAT_FILE_KINDS
+    setQueue(q => q.filter(x => keep.includes(x.kind)))
+  }
   const date = (v: string) => (v ? v : null)
 
   // A scanned passport or e-visa fills the matching fields; the file is attached on save.
@@ -135,14 +146,17 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
 
   async function save() {
     if (!f.name.trim()) { d.toast('Enter a name.'); return }
+    if (!f.origin) { d.toast('Choose Local (Maldivian) or Expatriate.'); return }
+    if (!local && f.country.trim().toLowerCase() === 'maldives') { d.toast('Expatriate staff need a country other than the Maldives. Choose Local for Maldivians.'); return }
     const row: Partial<Staff> = {
-      name: f.name.trim(), designation: f.designation.trim(), country: f.country.trim(), status: f.status,
+      name: f.name.trim(), designation: f.designation.trim(), country: local ? 'Maldives' : f.country.trim(), status: f.status,
       basic: Number(f.basic) || 0, food: Number(f.food) || 0, allowance: Number(f.allowance) || 0,
       join_date: date(f.join_date), left_date: f.status === 'Left' ? (f.left_date || todayStr) : date(f.left_date),
-      phone: f.phone.trim(), passport_no: f.passport_no.trim(), passport_exp: date(f.passport_exp), wp_no: f.wp_no.trim(),
-      wp_exp: date(f.wp_exp), visa_exp: date(f.visa_exp), medical_exp: date(f.medical_exp), insurance_exp: date(f.insurance_exp), notes: f.notes.trim(),
+      // For locals passport_no holds the national ID number; expat documents and dates are cleared.
+      phone: f.phone.trim(), passport_no: f.passport_no.trim(), passport_exp: local ? null : date(f.passport_exp), wp_no: f.wp_no.trim(),
+      wp_exp: date(f.wp_exp), visa_exp: local ? null : date(f.visa_exp), medical_exp: local ? null : date(f.medical_exp), insurance_exp: local ? null : date(f.insurance_exp), notes: f.notes.trim(),
       // Columns from the Nov 2026 upgrade, only once that SQL has been run.
-      ...(upgraded ? { visa_no: f.visa_no.trim(), emergency_contact: f.emergency_contact.trim(), annual_leave_days: Number(f.annual_leave_days) || 0, project_id: f.project_id || null } : {}),
+      ...(upgraded ? { visa_no: local ? '' : f.visa_no.trim(), emergency_contact: f.emergency_contact.trim(), annual_leave_days: Number(f.annual_leave_days) || 0, project_id: f.project_id || null } : {}),
     }
     if (s) row.id = s.id
     else { row.id = crypto.randomUUID(); row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1 }
@@ -160,16 +174,25 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
     <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={() => { setQueue([]); onClose() }} onSubmit={save}
       footer={s ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'staff', s.id); if (await d.remove('staff', s.id)) { onClose(); d.reload('files'); location.hash = 'staff'; d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
       <fieldset disabled={!d.canEdit}>
-        <ScanToFill options={[
+        <div className="originpick">
+          <span className="lbl">Staff type</span>
+          <div className="seg2" role="radiogroup" aria-label="Staff type" aria-required="true">
+            <button type="button" role="radio" aria-checked={f.origin === 'local'} onClick={() => pickOrigin('local')}>Local (Maldivian)</button>
+            <button type="button" role="radio" aria-checked={f.origin === 'expat'} onClick={() => pickOrigin('expat')}>Expatriate</button>
+          </div>
+          {!f.origin && <span className="sub">Choose one to continue.</span>}
+        </div>
+        {f.origin === 'expat' && <ScanToFill options={[
           { type: 'passport', label: 'Passport' },
           ...(upgraded ? [{ type: 'evisa' as const, label: 'E-visa' }] : []),
           { type: 'medical', label: 'Medical' },
           { type: 'insurance', label: 'Insurance' },
-        ]} onResult={scanned} />
+        ]} onResult={scanned} />}
         <div className="grid2">
           <Field label="Full name" hl={hl.has('name')}><input required value={f.name} onChange={set('name')} /></Field>
           <Field label="Designation"><input value={f.designation} placeholder="e.g. Mason" onChange={set('designation')} /></Field>
-          <Field label="Country" hl={hl.has('country')}><input value={f.country} list="countries" placeholder="e.g. Bangladesh" onChange={set('country')} /></Field>
+          {local ? <Field label="National ID no." hl={hl.has('passport_no')}><input value={f.passport_no} placeholder="e.g. A123456" autoCapitalize="characters" onChange={set('passport_no')} /></Field>
+            : <Field label="Country" hl={hl.has('country')}><input value={f.country} list="countries" placeholder="e.g. Bangladesh" disabled={!f.origin} onChange={set('country')} /></Field>}
           <Field label="Status"><select value={f.status} onChange={set('status')}><option>Active</option><option>On leave</option><option>Left</option></select></Field>
           <Field label="Basic salary (MVR)"><input type="number" min="0" inputMode="decimal" value={f.basic} onChange={set('basic')} /></Field>
           <Field label="Food allowance (MVR)"><input type="number" min="0" inputMode="decimal" value={f.food} onChange={set('food')} /></Field>
@@ -186,7 +209,7 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
             <Field label="Emergency contact" wide><input value={f.emergency_contact} placeholder="Name, relation, phone" onChange={set('emergency_contact')} /></Field>
           </>}
         </div>
-        <fieldset className="box"><legend>Passport, e-visa, medical and insurance</legend>
+        {f.origin === 'expat' && <fieldset className="box"><legend>Passport, e-visa, medical and insurance</legend>
           <div className="grid2">
             <Field label="Passport / ID no." hl={hl.has('passport_no')}><input value={f.passport_no} onChange={set('passport_no')} /></Field>
             <Field label="Passport expiry" hl={hl.has('passport_exp')}><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
@@ -195,14 +218,15 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
             <Field label="Medical expiry" hl={hl.has('medical_exp')}><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
             <Field label="Insurance expiry" hl={hl.has('insurance_exp')}><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
           </div>
-        </fieldset>
+        </fieldset>}
         <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
         {s && queue.length > 0 && <p className="note">Will be attached when you save: {queue.map(q => `${q.kind} (${q.file.name})`).join(', ')}</p>}
-        {!s && <fieldset className="box"><legend>Documents and scans</legend>
-          <Files ownerType="staff" ownerId="" kinds={STAFF_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add the passport copy, e-visa, photo or other papers now. They upload when you save." />
+        {!s && f.origin && <fieldset className="box"><legend>{local ? 'National ID' : 'Documents and scans'}</legend>
+          <Files ownerType="staff" ownerId="" kinds={local ? LOCAL_FILE_KINDS : EXPAT_FILE_KINDS} queue={queue} onQueue={setQueue}
+            empty={local ? 'Add a photo or scan of the national ID card now. It uploads when you save.' : 'Add the passport copy, e-visa, photo or other papers now. They upload when you save.'} />
         </fieldset>}
       </fieldset>
-      <datalist id="countries"><option>Maldives</option><option>Bangladesh</option><option>India</option><option>Sri Lanka</option><option>Nepal</option></datalist>
+      <datalist id="countries"><option>Bangladesh</option><option>India</option><option>Sri Lanka</option><option>Nepal</option></datalist>
     </Modal>
   )
 }
