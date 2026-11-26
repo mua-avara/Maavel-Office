@@ -70,8 +70,10 @@ export function ConfirmDelete({ label = 'Delete', onConfirm }: { label?: string;
   )
 }
 
-export function Field({ label, children, wide }: { label: string; children: ReactNode; wide?: boolean }) {
-  return <label className={wide ? 'span2' : undefined}><span className="lbl">{label}</span>{children}</label>
+/** A labelled form field. `hl` marks a value just filled in by a document scan, so it gets checked. */
+export function Field({ label, children, wide, hl }: { label: string; children: ReactNode; wide?: boolean; hl?: boolean }) {
+  const cls = [wide && 'span2', hl && 'scanned'].filter(Boolean).join(' ')
+  return <label className={cls || undefined}><span className="lbl">{label}</span>{children}</label>
 }
 
 export const Empty = ({ cols, children }: { cols: number; children: ReactNode }) => (

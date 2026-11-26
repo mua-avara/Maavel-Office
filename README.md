@@ -51,6 +51,16 @@ Admins create logins on the **Team** tab with **Add person**. This needs a small
 1. Supabase → **Edge Functions** → **Deploy a new function** → **Via editor**.
 2. Name it `admin-users`, replace the sample code with everything in `supabase/functions/admin-users/index.ts`, keep **Verify JWT** on, and click **Deploy**.
 
+## Scan to fill (one-time setup)
+
+Forms for staff, vehicles and company documents have a **Scan a document** box: photograph or upload a passport, e-visa, registration card, insurance, certificate or receipt and the fields fill in for you to check before saving. It uses Claude (Anthropic) through a small server function:
+
+1. Create an API key at platform.claude.com (organization: Maavel Maldives Pvt Ltd), expiry *Never*.
+2. Supabase → **Edge Functions → Secrets**: add `ANTHROPIC_API_KEY` with just the key (`sk-ant-…`).
+3. Supabase → **Edge Functions → Deploy a new function → Via editor**, name `scan-document`, paste `supabase/functions/scan-document/index.ts`, keep **Verify JWT** on.
+
+Each scan costs roughly 1–3 US cents. The document is sent to Anthropic to be read; nothing from it is logged.
+
 ## Files and scans
 
 Uploaded files (passport copies, e-visas, photos, licences, project drawings) are kept in a private Supabase Storage bucket called `files`, created by `schema.sql`. Only signed-in people with a role can open them, through links that expire after 5 minutes; editors and admins can upload and delete. Phone photos are shrunk to about 2000 px before upload. The free plan includes 1 GB.

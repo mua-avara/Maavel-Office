@@ -7,6 +7,8 @@ import { fmt0, niceDate, num } from '../lib/format'
 import { ASSET_FILE_KINDS, ASSET_STATUSES, MACHINE_TYPES, VEHICLE_TYPES, type Asset, type AssetKind, type AssetStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import Files, { EditablePhoto, Photo } from '../components/Files'
+import ScanToFill from '../components/Scan'
+import { isoDate, str as txt, type ScanFields, type ScanType } from '../lib/scan'
 
 type Show = 'all' | AssetKind
 const STATUS_PILL: Record<AssetStatus, string> = { 'In use': 'paid', Idle: 'upcoming', 'Under repair': 'soon', Sold: 'left' }
@@ -168,11 +170,40 @@ function AssetDialog({ asset, onClose }: { asset: Asset | null; onClose: () => v
   const [f, setF] = useState<Asset | null>(null)
   const [key, setKey] = useState<Asset | null>(null)
   const [queue, setQueue] = useState<PendingFile[]>([])
-  if (asset !== key) { setKey(asset); setF(asset); setQueue([]) }
+  const [hl, setHl] = useState<Set<string>>(new Set())
+  if (asset !== key) { setKey(asset); setF(asset); setQueue([]); setHl(new Set()) }
   const set = <K extends keyof Asset>(k: K, v: Asset[K]) => setF(cur => (cur ? { ...cur, [k]: v } : cur))
   const str = (k: keyof Asset) => (e: { target: { value: string } }) => set(k, e.target.value as never)
   const date = (k: keyof Asset) => (e: { target: { value: string } }) => set(k, (e.target.value || null) as never)
   const numv = (k: keyof Asset) => (e: { target: { value: string } }) => set(k, (e.target.value === '' ? null : Number(e.target.value)) as never)
+
+  // A scanned registration card, insurance, certificate or fee receipt fills the matching fields.
+  function scanned(type: ScanType, x: ScanFields, file: File) {
+    if (!f) return 0
+    const next: Partial<Asset> = {}
+    const put = <K extends keyof Asset>(k: K, v: Asset[K] | null | undefined, onlyIfEmpty = false) => { if (v != null && v !== '' && !(onlyIfEmpty && f[k])) next[k] = v as Asset[K] }
+    const reg = txt(x.reg_no)?.toUpperCase()
+    if (type === 'vehicle_registration') {
+      put('reg_no', reg); put('make', txt(x.make)); put('model', txt(x.model))
+      put('year', typeof x.year === 'number' ? Math.round(x.year) : null); put('colour', txt(x.colour))
+      put('chassis_no', txt(x.chassis_no)); put('engine_no', txt(x.engine_no)); put('registered_owner', txt(x.registered_owner))
+      put('name', [txt(x.make), txt(x.model)].filter(Boolean).join(' ') || null, true)
+    } else if (type === 'insurance') {
+      put('insurance_exp', isoDate(x.expiry_date)); put('insurance_provider', txt(x.insurer)); put('policy_no', txt(x.policy_no)); put('reg_no', reg, true)
+    } else if (type === 'road_worthiness') {
+      put('roadworthy_exp', isoDate(x.expiry_date)); put('reg_no', reg, true)
+    } else if (type === 'annual_fee') {
+      put('annual_fee_due', isoDate(x.next_due_date)); put('annual_fee', typeof x.amount_mvr === 'number' ? x.amount_mvr : null); put('reg_no', reg, true)
+    }
+    const keys = Object.keys(next)
+    if (keys.length) {
+      setF(cur => (cur ? { ...cur, ...next } : cur))
+      setHl(cur => new Set([...cur, ...keys]))
+      const kind = type === 'vehicle_registration' ? 'Registration' : type === 'insurance' ? 'Insurance' : type === 'road_worthiness' ? 'Road worthiness' : 'Annual fee receipt'
+      setQueue(q => [...q, { kind, file }])
+    }
+    return keys.length
+  }
 
   async function save() {
     if (!f) return
@@ -181,7 +212,7 @@ function AssetDialog({ asset, onClose }: { asset: Asset | null; onClose: () => v
     const row: Asset = { ...f, id: assetId, name: f.name.trim(), reg_no: f.reg_no.trim().toUpperCase() }
     if (!(await d.upsert('assets', row))) return
     let msg = 'Saved'
-    if (!f.id && queue.length) {
+    if (queue.length) {
       const r = await uploadPending('asset', assetId, queue)
       await d.reload('files')
       msg = r.failed ? `Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}` : `Saved with ${queue.length} file${queue.length === 1 ? '' : 's'}`
@@ -202,8 +233,14 @@ function AssetDialog({ asset, onClose }: { asset: Asset | null; onClose: () => v
     <Modal wide open={!!f} title={f?.id ? `Edit ${f.name}` : vehicle ? 'Add vehicle' : 'Add machinery'} onClose={onClose} onSubmit={save}
       footer={f?.id ? <ConfirmDelete onConfirm={del} /> : undefined}>
       {f && <fieldset disabled={!d.canEdit}>
+        <ScanToFill options={[
+          { type: 'vehicle_registration', label: 'Registration card' },
+          { type: 'insurance', label: 'Insurance' },
+          { type: 'road_worthiness', label: checkLabel(f).split(' / ')[0] },
+          { type: 'annual_fee', label: 'Annual fee receipt' },
+        ]} onResult={scanned} />
         <div className="grid2">
-          <Field label={vehicle ? 'Vehicle name' : 'Machine name'}><input required value={f.name} placeholder={vehicle ? 'e.g. Toyota Hilux' : 'e.g. CAT 320 excavator'} onChange={str('name')} /></Field>
+          <Field label={vehicle ? 'Vehicle name' : 'Machine name'} hl={hl.has('name')}><input required value={f.name} placeholder={vehicle ? 'e.g. Toyota Hilux' : 'e.g. CAT 320 excavator'} onChange={str('name')} /></Field>
           <Field label="Type"><select value={types.includes(f.type) ? f.type : 'Other'} onChange={str('type')}>{types.map(t => <option key={t}>{t}</option>)}</select></Field>
           <Field label="Status"><select value={f.status} onChange={e => set('status', e.target.value as AssetStatus)}>{ASSET_STATUSES.map(s => <option key={s}>{s}</option>)}</select></Field>
           <Field label="Site / project"><select value={f.project_id ?? ''} onChange={e => set('project_id', e.target.value || null)}>
@@ -214,14 +251,14 @@ function AssetDialog({ asset, onClose }: { asset: Asset | null; onClose: () => v
 
         <fieldset className="box"><legend>Registry</legend>
           <div className="grid2">
-            <Field label={isVessel(f) ? 'Vessel registration no.' : vehicle ? 'Registration (number plate)' : 'Registration no. (if any)'}><input value={f.reg_no} placeholder={isVessel(f) ? 'e.g. A1234A' : 'e.g. P-1234'} onChange={str('reg_no')} /></Field>
-            <Field label="Registered owner"><input value={f.registered_owner} onChange={str('registered_owner')} /></Field>
-            <Field label="Make"><input value={f.make} placeholder="e.g. Toyota, CAT, Yamaha" onChange={str('make')} /></Field>
-            <Field label="Model"><input value={f.model} onChange={str('model')} /></Field>
-            <Field label="Year"><input type="number" inputMode="numeric" min="1950" max="2100" value={f.year ?? ''} onChange={numv('year')} /></Field>
-            <Field label="Colour"><input value={f.colour} onChange={str('colour')} /></Field>
-            <Field label={isVessel(f) ? 'Hull no.' : 'Chassis no.'}><input value={f.chassis_no} onChange={str('chassis_no')} /></Field>
-            <Field label="Engine no."><input value={f.engine_no} onChange={str('engine_no')} /></Field>
+            <Field label={isVessel(f) ? 'Vessel registration no.' : vehicle ? 'Registration (number plate)' : 'Registration no. (if any)'} hl={hl.has('reg_no')}><input value={f.reg_no} placeholder={isVessel(f) ? 'e.g. A1234A' : 'e.g. P-1234'} onChange={str('reg_no')} /></Field>
+            <Field label="Registered owner" hl={hl.has('registered_owner')}><input value={f.registered_owner} onChange={str('registered_owner')} /></Field>
+            <Field label="Make" hl={hl.has('make')}><input value={f.make} placeholder="e.g. Toyota, CAT, Yamaha" onChange={str('make')} /></Field>
+            <Field label="Model" hl={hl.has('model')}><input value={f.model} onChange={str('model')} /></Field>
+            <Field label="Year" hl={hl.has('year')}><input type="number" inputMode="numeric" min="1950" max="2100" value={f.year ?? ''} onChange={numv('year')} /></Field>
+            <Field label="Colour" hl={hl.has('colour')}><input value={f.colour} onChange={str('colour')} /></Field>
+            <Field label={isVessel(f) ? 'Hull no.' : 'Chassis no.'} hl={hl.has('chassis_no')}><input value={f.chassis_no} onChange={str('chassis_no')} /></Field>
+            <Field label="Engine no." hl={hl.has('engine_no')}><input value={f.engine_no} onChange={str('engine_no')} /></Field>
             {!vehicle && <Field label="Serial no."><input value={f.serial_no} onChange={str('serial_no')} /></Field>}
             <Field label="Purchase date"><input type="date" value={f.purchase_date ?? ''} onChange={date('purchase_date')} /></Field>
             <Field label="Purchase price (MVR)"><input type="number" min="0" inputMode="decimal" value={f.purchase_price ?? ''} onChange={numv('purchase_price')} /></Field>
@@ -230,17 +267,18 @@ function AssetDialog({ asset, onClose }: { asset: Asset | null; onClose: () => v
 
         <fieldset className="box"><legend>Renewals</legend>
           <div className="grid2">
-            <Field label="Annual fee due"><input type="date" value={f.annual_fee_due ?? ''} onChange={date('annual_fee_due')} /></Field>
-            <Field label="Annual fee (MVR)"><input type="number" min="0" inputMode="decimal" value={f.annual_fee ?? ''} onChange={numv('annual_fee')} /></Field>
-            <Field label="Insurance expires"><input type="date" value={f.insurance_exp ?? ''} onChange={date('insurance_exp')} /></Field>
-            <Field label="Insurer"><input value={f.insurance_provider} placeholder="e.g. Allied, Amana" onChange={str('insurance_provider')} /></Field>
-            <Field label="Policy no."><input value={f.policy_no} onChange={str('policy_no')} /></Field>
-            <Field label={`${checkLabel(f)} expires`}><input type="date" value={f.roadworthy_exp ?? ''} onChange={date('roadworthy_exp')} /></Field>
+            <Field label="Annual fee due" hl={hl.has('annual_fee_due')}><input type="date" value={f.annual_fee_due ?? ''} onChange={date('annual_fee_due')} /></Field>
+            <Field label="Annual fee (MVR)" hl={hl.has('annual_fee')}><input type="number" min="0" inputMode="decimal" value={f.annual_fee ?? ''} onChange={numv('annual_fee')} /></Field>
+            <Field label="Insurance expires" hl={hl.has('insurance_exp')}><input type="date" value={f.insurance_exp ?? ''} onChange={date('insurance_exp')} /></Field>
+            <Field label="Insurer" hl={hl.has('insurance_provider')}><input value={f.insurance_provider} placeholder="e.g. Allied, Amana" onChange={str('insurance_provider')} /></Field>
+            <Field label="Policy no." hl={hl.has('policy_no')}><input value={f.policy_no} onChange={str('policy_no')} /></Field>
+            <Field label={`${checkLabel(f)} expires`} hl={hl.has('roadworthy_exp')}><input type="date" value={f.roadworthy_exp ?? ''} onChange={date('roadworthy_exp')} /></Field>
           </div>
         </fieldset>
 
         <Field label="Notes"><input value={f.notes} placeholder="Where it’s kept, who looks after it…" onChange={str('notes')} /></Field>
 
+        {f.id && queue.length > 0 && <p className="note">Will be attached when you save: {queue.map(q => `${q.kind} (${q.file.name})`).join(', ')}</p>}
         {!f.id && <fieldset className="box"><legend>Photos and papers</legend>
           <Files ownerType="asset" ownerId="" kinds={ASSET_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add a photo, the registration card, insurance or road worthiness certificate now. They upload when you save." />
         </fieldset>}

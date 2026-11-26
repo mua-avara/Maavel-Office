@@ -786,3 +786,15 @@ dialog[open]::backdrop{animation:fade .25s ease}
   .sec-head:has(.head-actions){flex-direction:column;align-items:stretch}
   .sec-head .head-actions button{flex:1}
 }
+
+/* scan to fill */
+.scanbar{border:1px dashed var(--line-strong);border-radius:14px;padding:10px 12px;background:var(--glass-2);display:flex;flex-direction:column;gap:6px}
+.scanrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.scanrow .ic{color:var(--orange)}
+.scantitle{flex:1;min-width:160px;font-weight:600;font-size:13px;color:var(--ink)}
+.scanrow select{width:auto;flex:none}
+.scan-ok{color:var(--ok)!important}
+.scan-err{color:var(--bad)!important}
+label.scanned input,label.scanned select{border-color:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 22%,transparent);animation:scanned-in .6s var(--ease)}
+label.scanned .lbl::after{content:" ✓ scanned";color:var(--ok);font-weight:600}
+@keyframes scanned-in{from{background:color-mix(in srgb,var(--ok) 18%,transparent)}}

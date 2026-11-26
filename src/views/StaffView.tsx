@@ -6,6 +6,8 @@ import { STAFF_FILE_KINDS, type Staff, type StaffStatus } from '../lib/types'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import Files, { Photo } from '../components/Files'
+import ScanToFill from '../components/Scan'
+import { isoDate, str, titleCase, type ScanFields, type ScanType } from '../lib/scan'
 import StaffProfile from './StaffProfile'
 
 type Filter = 'Active' | 'docs' | 'Left' | 'all'
@@ -87,15 +89,41 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
   const d = useData()
   const upgraded = !d.missing.includes('projects')
   const [queue, setQueue] = useState<PendingFile[]>([])
+  const [hl, setHl] = useState<Set<string>>(new Set())
   const s = staff && staff !== 'new' ? staff : null
   const [f, setF] = useState<Form>(blank)
   const [key, setKey] = useState<typeof staff>(null)
   if (staff !== key) {
     setKey(staff)
+    setHl(new Set())
     if (staff) setF(s ? ({ ...blank, ...Object.fromEntries(Object.keys(blank).filter(k => s[k as keyof Staff] != null).map(k => [k, String(s[k as keyof Staff])])) } as Form) : blank)
   }
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value })
   const date = (v: string) => (v ? v : null)
+
+  // A scanned passport or e-visa fills the matching fields; the file is attached on save.
+  function scanned(type: ScanType, x: ScanFields, file: File) {
+    const next: Partial<Form> = {}
+    const put = (k: keyof Form, v: string | null, onlyIfEmpty = false) => { if (v && !(onlyIfEmpty && f[k])) next[k] = v as never }
+    if (type === 'passport') {
+      put('name', str(x.full_name) && titleCase(str(x.full_name)!), true)
+      put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null)
+      put('passport_exp', isoDate(x.expiry_date))
+      put('country', str(x.nationality) && titleCase(str(x.nationality)!))
+    } else {
+      put('visa_no', str(x.visa_no))
+      put('visa_exp', isoDate(x.expiry_date))
+      put('name', str(x.holder_name) && titleCase(str(x.holder_name)!), true)
+      put('passport_no', str(x.passport_no)?.replace(/\s+/g, '') ?? null, true)
+    }
+    const keys = Object.keys(next)
+    if (keys.length) {
+      setF(cur => ({ ...cur, ...next }))
+      setHl(cur => new Set([...cur, ...keys]))
+      setQueue(q => [...q, { kind: type === 'passport' ? 'Passport copy' : 'E-visa', file }])
+    }
+    return keys.length
+  }
 
   async function save() {
     if (!f.name.trim()) { d.toast('Enter a name.'); return }
@@ -112,7 +140,7 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
     else { row.id = crypto.randomUUID(); row.sort_order = d.staff.reduce((a, x) => Math.max(a, x.sort_order), 0) + 1 }
     if (!(await d.upsert('staff', row))) return
     let msg = 'Saved'
-    if (!s && queue.length) {
+    if (queue.length) {
       const r = await uploadPending('staff', row.id!, queue)
       await d.reload('files')
       msg = r.failed ? `Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}` : `Saved with ${queue.length} file${queue.length === 1 ? '' : 's'}`
@@ -124,10 +152,11 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
     <Modal wide open={!!staff} title={s ? s.name : 'Add staff'} onClose={() => { setQueue([]); onClose() }} onSubmit={save}
       footer={s ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'staff', s.id); if (await d.remove('staff', s.id)) { onClose(); d.reload('files'); location.hash = 'staff'; d.toast('Deleted. To keep history, set Status to Left instead.') } }} /> : undefined}>
       <fieldset disabled={!d.canEdit}>
+        <ScanToFill options={[{ type: 'passport', label: 'Passport' }, ...(upgraded ? [{ type: 'evisa' as const, label: 'E-visa' }] : [])]} onResult={scanned} />
         <div className="grid2">
-          <Field label="Full name"><input required value={f.name} onChange={set('name')} /></Field>
+          <Field label="Full name" hl={hl.has('name')}><input required value={f.name} onChange={set('name')} /></Field>
           <Field label="Designation"><input value={f.designation} placeholder="e.g. Mason" onChange={set('designation')} /></Field>
-          <Field label="Country"><input value={f.country} list="countries" placeholder="e.g. Bangladesh" onChange={set('country')} /></Field>
+          <Field label="Country" hl={hl.has('country')}><input value={f.country} list="countries" placeholder="e.g. Bangladesh" onChange={set('country')} /></Field>
           <Field label="Status"><select value={f.status} onChange={set('status')}><option>Active</option><option>On leave</option><option>Left</option></select></Field>
           <Field label="Basic salary (MVR)"><input type="number" min="0" inputMode="decimal" value={f.basic} onChange={set('basic')} /></Field>
           <Field label="Food allowance (MVR)"><input type="number" min="0" inputMode="decimal" value={f.food} onChange={set('food')} /></Field>
@@ -146,15 +175,16 @@ export function StaffDialog({ staff, onClose }: { staff: Staff | 'new' | null; o
         </div>
         <fieldset className="box"><legend>Passport and e-visa</legend>
           <div className="grid2">
-            <Field label="Passport / ID no."><input value={f.passport_no} onChange={set('passport_no')} /></Field>
-            <Field label="Passport expiry"><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
-            {upgraded && <Field label="E-visa no."><input value={f.visa_no} onChange={set('visa_no')} /></Field>}
-            <Field label="E-visa expiry"><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
+            <Field label="Passport / ID no." hl={hl.has('passport_no')}><input value={f.passport_no} onChange={set('passport_no')} /></Field>
+            <Field label="Passport expiry" hl={hl.has('passport_exp')}><input type="date" value={f.passport_exp} onChange={set('passport_exp')} /></Field>
+            {upgraded && <Field label="E-visa no." hl={hl.has('visa_no')}><input value={f.visa_no} onChange={set('visa_no')} /></Field>}
+            <Field label="E-visa expiry" hl={hl.has('visa_exp')}><input type="date" value={f.visa_exp} onChange={set('visa_exp')} /></Field>
             <Field label="Medical expiry"><input type="date" value={f.medical_exp} onChange={set('medical_exp')} /></Field>
             <Field label="Insurance expiry"><input type="date" value={f.insurance_exp} onChange={set('insurance_exp')} /></Field>
           </div>
         </fieldset>
         <Field label="Notes"><input value={f.notes} onChange={set('notes')} /></Field>
+        {s && queue.length > 0 && <p className="note">Will be attached when you save: {queue.map(q => `${q.kind} (${q.file.name})`).join(', ')}</p>}
         {!s && <fieldset className="box"><legend>Documents and scans</legend>
           <Files ownerType="staff" ownerId="" kinds={STAFF_FILE_KINDS} queue={queue} onQueue={setQueue} empty="Add the passport copy, e-visa, photo or other papers now. They upload when you save." />
         </fieldset>}

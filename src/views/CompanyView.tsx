@@ -7,6 +7,8 @@ import { removeAllFiles, uploadPending, type PendingFile } from '../lib/files'
 import { ConfirmDelete, Empty, Field, Modal, Pill, Section, Tile } from '../components/ui'
 import { SetupNote } from './DashboardView'
 import Files from '../components/Files'
+import ScanToFill from '../components/Scan'
+import { isoDate, str, type ScanFields } from '../lib/scan'
 
 const blank = (): CompanyDoc => ({ id: '', name: '', category: 'Registration & licence', number: '', issuer: '', issue_date: null, expiry_date: null, renewal_cost: null, notes: '' })
 
@@ -25,6 +27,7 @@ export default function CompanyView() {
   const [edit, setEdit] = useState<CompanyDoc | null>(null)
   const [q, setQ] = useState('')
   const [queue, setQueue] = useState<PendingFile[]>([])
+  const [hl, setHl] = useState<Set<string>>(new Set())
 
   const list = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -43,6 +46,24 @@ export default function CompanyView() {
   const soon = all.filter(e => e.level === 'warn').length
   const cost = d.company_docs.filter(c => { const e = expiryLevel(c.expiry_date); return e.days != null && e.days <= 90 }).reduce((a, c) => a + Number(c.renewal_cost || 0), 0)
 
+  // A scanned licence or certificate fills the matching fields; the file is attached on save.
+  function scanned(_type: unknown, x: ScanFields, file: File) {
+    if (!edit) return 0
+    const next: Partial<CompanyDoc> = {}
+    const put = <K extends keyof CompanyDoc>(k: K, v: CompanyDoc[K] | null, onlyIfEmpty = false) => { if (v && !(onlyIfEmpty && edit[k])) next[k] = v }
+    put('name', str(x.document_name), true)
+    put('number', str(x.number)); put('issuer', str(x.issuer), true)
+    put('issue_date', isoDate(x.issue_date)); put('expiry_date', isoDate(x.expiry_date))
+    const keys = Object.keys(next)
+    if (keys.length) {
+      setEdit(cur => (cur ? { ...cur, ...next } : cur))
+      setHl(cur => new Set([...cur, ...keys]))
+      setQueue(q => [...q, { kind: 'Certificate / licence', file }])
+    }
+    return keys.length
+  }
+  const close = () => { setEdit(null); setQueue([]); setHl(new Set()) }
+
   async function save() {
     if (!edit) return
     const { id, ...rest } = edit
@@ -54,10 +75,10 @@ export default function CompanyView() {
     if (queue.length) {
       const r = await uploadPending('company_doc', docId, queue)
       await d.reload('files')
-      if (r.failed) { d.toast(`Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}`); setQueue([]); setEdit(null); return }
+      if (r.failed) { d.toast(`Saved, but ${r.failed} file${r.failed === 1 ? '' : 's'} didn’t upload: ${r.reason}`); close(); return }
     }
     d.toast(queue.length ? `Saved with ${queue.length} file${queue.length === 1 ? '' : 's'}` : 'Saved')
-    setQueue([]); setEdit(null)
+    close()
   }
 
   return (
@@ -93,19 +114,21 @@ export default function CompanyView() {
         )}
       </Section>
 
-      <Modal wide open={!!edit} title={edit?.id ? 'Edit document' : 'New document'} onClose={() => { setEdit(null); setQueue([]) }} onSubmit={save}
+      <Modal wide open={!!edit} title={edit?.id ? 'Edit document' : 'New document'} onClose={close} onSubmit={save}
         footer={edit?.id ? <ConfirmDelete onConfirm={async () => { await removeAllFiles(d.files, 'company_doc', edit.id); if (await d.remove('company_docs', edit.id)) { setEdit(null); d.reload('files'); d.toast('Deleted') } }} /> : undefined}>
         {edit && <fieldset disabled={!d.canEdit}>
-          <Field label="Document"><input required value={edit.name} placeholder="e.g. Business permit" onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
+          <ScanToFill options={[{ type: 'licence', label: 'Certificate' }]} onResult={scanned} />
+          {edit.id && queue.length > 0 && <p className="note">Will be attached when you save: {queue.map(q => q.file.name).join(', ')}</p>}
+          <Field label="Document" hl={hl.has('name')}><input required value={edit.name} placeholder="e.g. Business permit" onChange={e => setEdit({ ...edit, name: e.target.value })} /></Field>
           <div className="grid2">
             <Field label="Type"><select value={edit.category} onChange={e => setEdit({ ...edit, category: e.target.value })}>
               {DOC_CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select></Field>
-            <Field label="Number"><input value={edit.number} onChange={e => setEdit({ ...edit, number: e.target.value })} /></Field>
-            <Field label="Issued by"><input value={edit.issuer} placeholder="e.g. MIRA" onChange={e => setEdit({ ...edit, issuer: e.target.value })} /></Field>
+            <Field label="Number" hl={hl.has('number')}><input value={edit.number} onChange={e => setEdit({ ...edit, number: e.target.value })} /></Field>
+            <Field label="Issued by" hl={hl.has('issuer')}><input value={edit.issuer} placeholder="e.g. MIRA" onChange={e => setEdit({ ...edit, issuer: e.target.value })} /></Field>
             <Field label="Renewal fee (MVR)"><input type="number" min="0" inputMode="decimal" value={edit.renewal_cost ?? ''} onChange={e => setEdit({ ...edit, renewal_cost: e.target.value === '' ? null : Number(e.target.value) })} /></Field>
-            <Field label="Issue date"><input type="date" value={edit.issue_date ?? ''} onChange={e => setEdit({ ...edit, issue_date: e.target.value || null })} /></Field>
-            <Field label="Expiry date (blank if it never expires)"><input type="date" value={edit.expiry_date ?? ''} onChange={e => setEdit({ ...edit, expiry_date: e.target.value || null })} /></Field>
+            <Field label="Issue date" hl={hl.has('issue_date')}><input type="date" value={edit.issue_date ?? ''} onChange={e => setEdit({ ...edit, issue_date: e.target.value || null })} /></Field>
+            <Field label="Expiry date (blank if it never expires)" hl={hl.has('expiry_date')}><input type="date" value={edit.expiry_date ?? ''} onChange={e => setEdit({ ...edit, expiry_date: e.target.value || null })} /></Field>
           </div>
           <Field label="Notes"><input value={edit.notes} placeholder="Where the original is kept, who renews it…" onChange={e => setEdit({ ...edit, notes: e.target.value })} /></Field>
         </fieldset>}
