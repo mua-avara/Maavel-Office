@@ -54,7 +54,7 @@ export default function StaffView({ id }: { id: string | null }) {
       <Section title="Staff" intro="Tap a person to see their profile: documents and scans, pay history and leave."
         action={<button className="primary" disabled={!d.canEdit} onClick={() => setEdit('new')}>Add staff</button>}>
         <div className="toolbar">
-          <Field label="Search"><input value={q} placeholder="Name, job, passport or ID no." onChange={e => setQ(e.target.value)} /></Field>
+          <Field label="Search"><input value={q} placeholder="Name, job or ID no." onChange={e => setQ(e.target.value)} /></Field>
           <Field label="Show"><select value={filter} onChange={e => setFilter(e.target.value as Filter)}>
             <option value="Active">Active staff</option><option value="docs">Documents to renew</option><option value="Left">Left Maavel</option><option value="all">Everyone</option>
           </select></Field>

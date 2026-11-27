@@ -31,26 +31,39 @@ export function Modal({ open, title, onClose, onSubmit, children, footer, wide }
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [busy, setBusy] = useState(false)
+  // Anything typed, picked or attached since the form opened; asked about before closing without saving.
+  const dirty = useRef(false)
   useEffect(() => {
     const d = ref.current
     if (!d) return
-    if (open && !d.open) d.showModal()
+    if (open && !d.open) { dirty.current = false; d.showModal() }
     if (!open && d.open) d.close()
   }, [open])
+  useEffect(() => {
+    if (!open) return
+    const warn = (e: BeforeUnloadEvent) => { if (dirty.current) e.preventDefault() }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [open])
+  function tryClose() {
+    if (dirty.current && !window.confirm('Close without saving? Your changes will be lost.')) return
+    dirty.current = false
+    onClose()
+  }
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     try { await onSubmit() } finally { setBusy(false) }
   }
   return (
-    <dialog ref={ref} className={wide ? 'wide' : ''} onClose={onClose} onCancel={onClose}>
+    <dialog ref={ref} className={wide ? 'wide' : ''} onClose={onClose} onCancel={e => { e.preventDefault(); tryClose() }}>
       {open && (
-        <form onSubmit={submit}>
+        <form onSubmit={submit} onInput={() => { dirty.current = true }} onChange={() => { dirty.current = true }}>
           <h3>{title}</h3>
           {children}
           <div className="actions">
             {footer}
-            <button type="button" onClick={onClose}>Cancel</button>
+            <button type="button" onClick={tryClose}>Cancel</button>
             <button className="primary" type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save'}</button>
           </div>
         </form>

@@ -39,6 +39,6 @@ Internal web app for **Maavel Maldives Pvt Ltd** (construction company, Maldives
 
 ## Working on it
 - Change the database by editing `supabase/schema.sql` (keep it re-runnable) and tell the user to run the changed part in the Supabase SQL Editor.
-- Keep the UI plain-English and phone friendly; test at ~400px wide.
+- Keep the UI plain-English and phone friendly; test at ~400px wide. Follow UI/UX Pro Max rules: text at least 12px (except badge digits, kbd, logo wordmark), `dvh` for full-height layouts, 44px touch targets, `Modal` asks before closing with unsaved input, focus moves to `#main` on every page change.
 - Staff data includes passport numbers and pay: keep the repo private, never log or export it anywhere public.
 - Run `npx tsc -b && npm run build && npx oxlint` before committing.

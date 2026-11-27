@@ -41,12 +41,12 @@ export default function Shell({ view, pageKey, email, month, setMonth, children 
   // Close the phone menu whenever the page changes.
   const [lastView, setLastView] = useState(view)
   if (view !== lastView) { setLastView(view); setDrawer(false) }
-  // After moving to another page, put keyboard / screen-reader focus on the new content.
+  // After moving to another page (a tab, or a profile / project / BOQ inside it), put keyboard and screen-reader focus on the new content.
   const first = useRef(true)
   useEffect(() => {
     if (first.current) { first.current = false; return }
     document.getElementById('main')?.focus({ preventScroll: true })
-  }, [view])
+  }, [pageKey])
   useEffect(() => {
     if (!drawer) return
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawer(false) }

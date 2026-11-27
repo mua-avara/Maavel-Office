@@ -198,6 +198,13 @@ function NewBoq() {
   }
 
   const running = !!steps && !error && steps.some(s => s.state === 'run' || s.state === 'wait')
+  // Closing or reloading the tab would stop the drawings being read: ask first.
+  useEffect(() => {
+    if (!running) return
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [running])
   return (
     <div className="view">
       <p className="crumbs"><a href="#boq">‹ All BOQs</a></p>
