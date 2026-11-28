@@ -181,7 +181,7 @@ function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeo
       </div>
 
       {!d.missing.includes('boqs') && (
-        <Section title="Bills of quantities" intro="Estimates made from this project's drawings." action={d.canEdit ? <a className="btnlink" href="#boq/new">New BOQ</a> : undefined}>
+        <Section title="Bills of quantities" action={d.canEdit ? <a className="btnlink" href="#boq/new">New BOQ</a> : undefined}>
           {!boqs.length ? <p className="empty">No BOQ for this project yet.</p> : boqs.map(b => (
             <div className="kv" key={b.id}><a className="plain" href={`#boq/${b.id}`}>{b.title}<span className="sub">{b.status === 'final' ? 'Final' : b.status === 'draft' ? 'Draft' : 'Reading drawings'}</span></a><span>{fmt0(boqTotals(b, d.boq_items.filter(i => i.boq_id === b.id)).total)}</span></div>
           ))}
@@ -199,7 +199,7 @@ function ProjectPage({ p, c, onEdit, dialog }: { p: Project; c: ReturnType<typeo
         </table></div>
       </Section>
 
-      <Section title="Project files" intro="Contracts, drawings, quotations, invoices and site photos.">
+      <Section title="Project files">
         <Files ownerType="project" ownerId={p.id} kinds={PROJECT_FILE_KINDS} />
       </Section>
       {p.notes && <Section title="Notes"><p className="note">{p.notes}</p></Section>}

@@ -139,7 +139,7 @@ function AssetPage({ a, onEdit, dialog }: { a: Asset; onEdit: () => void; dialog
           {a.notes && <p className="note">{a.notes}</p>}
         </Section>
 
-        <Section title="Renewals" intro="Dates warn 60 days ahead. Upload each certificate or receipt next to its date.">
+        <Section title="Renewals" intro="Dates warn 60 days ahead.">
           <ul className="docrows">
             {docs.map(r => (
               <li key={r.key}>

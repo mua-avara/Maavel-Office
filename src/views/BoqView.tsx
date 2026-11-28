@@ -178,7 +178,7 @@ function NewBoq() {
       upd(pi, { state: 'done', detail: `${priced.length} items after merging` })
     } catch (e) {
       priced = items.map(it => ({ ...it, rate: null, rate_source: 'manual' as const, rate_note: '' }))
-      upd(pi, { state: 'fail', detail: `${e instanceof Error ? e.message : 'Pricing failed'} — saved without rates` })
+      upd(pi, { state: 'fail', detail: `${e instanceof Error ? e.message : 'Pricing failed'}. Saved without rates.` })
     }
 
     // 4. save items

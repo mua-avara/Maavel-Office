@@ -22,7 +22,7 @@ export default function EstimateView({ k }: { k: string }) {
 
   return (
     <div className="view">
-      <Section title={`Overhead estimate · ${monthName(k)}`} intro="What Maavel expects to spend on staff, rent, bills and running costs this month. Use the arrows above to change the month."
+      <Section title={`Overhead estimate · ${monthName(k)}`} intro="What Maavel expects to spend on staff, rent, bills and running costs this month."
         action={<button className="accent" onClick={() => import('../lib/pdf').then(m => m.estimatePdf(e))}>Download estimate PDF</button>}>
         <div className="big">MVR {fmt0(e.total)}</div>
         <div className="row">

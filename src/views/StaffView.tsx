@@ -51,7 +51,7 @@ export default function StaffView({ id }: { id: string | null }) {
         <Tile label="Monthly allowances" value={fmt0(active.reduce((a, s) => a + Number(s.food) + Number(s.allowance), 0))} sub="Food, phone and other" />
         <Tile label="Documents to renew" value={needDocs} sub={noDates ? `${noDates} expats have no dates yet` : 'Expired or due within 60 days'} total />
       </div>
-      <Section title="Staff" intro="Tap a person to see their profile: documents and scans, pay history and leave."
+      <Section title="Staff"
         action={<button className="primary" disabled={!d.canEdit} onClick={() => setEdit('new')}>Add staff</button>}>
         <div className="toolbar">
           <Field label="Search"><input value={q} placeholder="Name, job or ID no." onChange={e => setQ(e.target.value)} /></Field>

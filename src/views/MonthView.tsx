@@ -40,7 +40,7 @@ export default function MonthView({ k, action = null }: { k: string; action?: st
         <Tile label="Total spend" value={fmt0(c.total)} sub="Everything paid this month" total />
       </div>
 
-      <Section title="Monthly bills" intro="Rent, utilities, WiFi and other regular bills. Tap a bill’s name to change its amount, due day or payment account; tap Mark paid when you pay it."
+      <Section title="Monthly bills" intro="Rent, utilities, WiFi and other regular bills."
         action={<button className="primary" disabled={!d.canEdit} onClick={() => setBill('new')}>Add a bill</button>}>
         <div className="tablewrap"><table>
           <thead><tr><th>Bill</th><th className="hide-xs">Status</th><th className="num">Amount (MVR)</th><th className="hide-sm">Due</th><th className="hide-sm">Category</th><th /></tr></thead>
@@ -68,7 +68,7 @@ export default function MonthView({ k, action = null }: { k: string; action?: st
         </table></div>
       </Section>
 
-      <Section title="Other expenses" intro="One-off costs this month: repairs, materials, transport, fees." action={<button className="primary" disabled={!d.canEdit} onClick={() => setPay({})}>Add expense</button>}>
+      <Section title="Other expenses" action={<button className="primary" disabled={!d.canEdit} onClick={() => setPay({})}>Add expense</button>}>
         <div className="tablewrap"><table>
           <thead><tr><th>Date</th><th>Item</th><th className="hide-sm">Category</th><th className="hide-sm">Method</th><th className="num">Amount (MVR)</th><th /></tr></thead>
           <tbody>
